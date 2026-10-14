@@ -7,6 +7,8 @@ on:
     - cron: "0 6 * * *"   # 8:00 en horario de verano (CEST)
     - cron: "0 7 * * *"   # 8:00 en horario de invierno (CET)
   workflow_dispatch:      # botón para lanzarlo a mano desde la pestaña Actions
+  push:                   # y cada vez que se sube código nuevo
+    branches: [main]
 
 permissions:
   contents: read
