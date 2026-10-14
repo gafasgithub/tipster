@@ -1,12 +1,9 @@
 """Agente Calendario: lee en Wikipedia los partidos y resultados de la Champions."""
-import json
 import re
-import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 from .base import Agente
 
-API_WIKIPEDIA = "https://en.wikipedia.org/w/api.php"
 PAGINAS = [("league phase", "LEAGUE_STAGE"), ("knockout phase", None)]
 
 CABECERA = re.compile(r"^(={2,5})\s*([^=\n]+?)\s*\1[ \t]*$", re.M)
@@ -36,7 +33,7 @@ class AgenteCalendario(Agente):
         partidos = []
         for sufijo, etapa in PAGINAS:
             pagina = f"{temporada} UEFA Champions League {sufijo}"
-            texto = self._wikitexto(pagina)
+            texto = self.wikitexto(pagina)
             if texto is None:
                 self.info(f"La página «{pagina}» aún no existe")
                 continue
@@ -56,14 +53,6 @@ class AgenteCalendario(Agente):
             self.aviso("No hay partidos pendientes")
         self.metricas = {"partidos_temporada": len(partidos), "jugados": len(jugados), "proximos": len(proximos)}
         return {"temporada": temporada, "jugados": jugados, "proximos": proximos}
-
-    def _wikitexto(self, pagina):
-        parametros = urllib.parse.urlencode({
-            "action": "parse", "page": pagina, "prop": "wikitext",
-            "format": "json", "formatversion": 2, "redirects": 1,
-        })
-        datos = json.loads(self.descargar(f"{API_WIKIPEDIA}?{parametros}", horas_cache=1))
-        return None if "error" in datos else datos["parse"]["wikitext"]
 
 
 def temporada_actual(hoy):

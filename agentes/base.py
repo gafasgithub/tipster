@@ -8,6 +8,7 @@ import hashlib
 import json
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,6 +17,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 CARPETA_ESTADO = RAIZ / "estado"
 CARPETA_CACHE = RAIZ / ".cache" / "agentes"
 AGENTE_HTTP = "TIPSTER/0.2 (proyecto personal; https://github.com/gafasgithub/tipster)"
+API_WIKIPEDIA = "https://en.wikipedia.org/w/api.php"
 MARCAS = {"info": " ", "aviso": "!", "error": "X"}
 
 
@@ -112,3 +114,12 @@ class Agente:
         archivo.write_bytes(datos)
         time.sleep(1)  # pausa de cortesía con las webs
         return datos
+
+    def wikitexto(self, pagina, horas_cache=1):
+        """Texto fuente de una página de Wikipedia en inglés, o None si no existe."""
+        parametros = urllib.parse.urlencode({
+            "action": "parse", "page": pagina, "prop": "wikitext",
+            "format": "json", "formatversion": 2, "redirects": 1,
+        })
+        datos = json.loads(self.descargar(f"{API_WIKIPEDIA}?{parametros}", horas_cache))
+        return None if "error" in datos else datos["parse"]["wikitext"]
