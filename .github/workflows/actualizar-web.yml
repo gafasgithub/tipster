@@ -47,7 +47,9 @@ jobs:
 
       - name: Ejecutar los agentes
         if: steps.hora.outputs.seguir == 'si'
-        run: python tipster_agentes.py
+        run: |
+          python tipster_agentes.py
+          cp -r estado web_agentes/estado   # el registro de los agentes se publica junto a la web
 
       - uses: actions/configure-pages@v5
         if: steps.hora.outputs.seguir == 'si'
