@@ -2,3 +2,5 @@
 .cache/
 web/
 __pycache__/
+estado/
+web_agentes/

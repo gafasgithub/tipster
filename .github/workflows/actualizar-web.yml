@@ -43,11 +43,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Generar pronósticos
+      - name: Ejecutar los agentes
         if: steps.hora.outputs.seguir == 'si'
-        run: python tipster.py
-        env:
-          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: python tipster_agentes.py
 
       - uses: actions/configure-pages@v5
         if: steps.hora.outputs.seguir == 'si'
@@ -55,7 +53,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         if: steps.hora.outputs.seguir == 'si'
         with:
-          path: web
+          path: web_agentes
 
       - uses: actions/deploy-pages@v4
         id: desplegar
