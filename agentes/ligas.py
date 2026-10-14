@@ -55,7 +55,7 @@ class AgenteLigas(Agente):
             ligas[pais] = {
                 "pais": pais, "codigo": codigo, "nombre": nombre, "partidos": partidos, "media_goles": media,
                 "equipos": sorted({p["local"] for p in partidos} | {p["visitante"] for p in partidos}),
-                "con_estadisticas": any(p["corners_l"] is not None for p in partidos),
+                "con_estadisticas": any(p.get("corners_l") is not None for p in partidos),
             }
             self.info(f"{nombre}: {len(partidos)} partidos, {len(ligas[pais]['equipos'])} equipos, "
                       f"{media:.2f} goles por equipo")
@@ -111,6 +111,9 @@ def _fila_principal(f):
         "corners_l": _num(f, "HC"), "corners_v": _num(f, "AC"),
         "tarjetas_l": _tarjetas(_num(f, "HY"), _num(f, "HR")),
         "tarjetas_v": _tarjetas(_num(f, "AY"), _num(f, "AR")),
+        "tiros_l": _num(f, "HS"), "tiros_v": _num(f, "AS"),
+        "apuerta_l": _num(f, "HST"), "apuerta_v": _num(f, "AST"),
+        "faltas_l": _num(f, "HF"), "faltas_v": _num(f, "AF"),
     }
 
 
@@ -121,5 +124,4 @@ def _fila_extra(f):
     return {
         "fecha": _fecha(f["Date"]), "local": f["Home"].strip(), "visitante": f["Away"].strip(),
         "gl": int(gl), "gv": int(gv), "xg_l": None, "xg_v": None,
-        "corners_l": None, "corners_v": None, "tarjetas_l": None, "tarjetas_v": None,
     }

@@ -25,8 +25,14 @@ PESO_CHAMPIONS = 1.5      # un partido de Champions cuenta 1.5 veces uno de liga
 PESO_PREVIO = 4           # partidos "virtuales" al nivel de su liga, para muestras pequeñas
 MAX_PARTIDOS_LIGA = 12
 MEDIA_CHAMPIONS_PREVIA = 1.45
-POR_DEFECTO = {"corners": 5.0, "tarjetas": 2.0}
-LINEAS = {"corners": (8.5, 9.5, 10.5), "tarjetas": (3.5, 4.5, 5.5)}
+# Estadísticas por equipo y partido: valor medio si no hay datos, y líneas de "más de"
+ESTADISTICAS = {
+    "corners": {"defecto": 5.0, "lineas": (8.5, 9.5, 10.5)},
+    "tarjetas": {"defecto": 2.0, "lineas": (3.5, 4.5, 5.5)},
+    "tiros": {"defecto": 12.5, "lineas": (22.5, 24.5, 26.5)},
+    "apuerta": {"defecto": 4.3, "lineas": (7.5, 8.5, 9.5)},
+    "faltas": {"defecto": 11.5, "lineas": (20.5, 22.5, 24.5)},
+}
 MIN_PARTIDOS_FIABLE = 5
 
 
@@ -49,7 +55,7 @@ class AgenteAnalista(Agente):
             fichas = {lado: self._ficha(p[lado], jugados, ligas, mapa, media_cl) for lado in ("local", "visitante")}
             analisis = _analizar(p, fichas, media_cl)
             partidos.append(analisis)
-            pr, c, t = analisis["probabilidades"], analisis["corners"], analisis["tarjetas"]
+            pr, c, t = analisis["probabilidades"], analisis["mercados"]["corners"], analisis["mercados"]["tarjetas"]
             self.info(f"{p['local']['corto']} vs {p['visitante']['corto']}: "
                       f"1 {pr['local']:.0%} · X {pr['empate']:.0%} · 2 {pr['visitante']:.0%} | "
                       f"corners {c['total']:.1f} | tarjetas {t['total']:.1f}")
@@ -109,13 +115,14 @@ class AgenteAnalista(Agente):
         if len(de_liga) + len(de_champions) < 4:
             self.aviso(f"{equipo['nombre']}: solo {len(de_liga) + len(de_champions)} partidos, pronóstico poco fiable")
 
-        def estadistica(clave_favor, clave_contra, nombre):
-            con_dato = [r for r in de_liga if r[clave_favor] is not None]
+        def estadistica(nombre):
+            con_dato = [r["stats"][nombre] for r in de_liga if r["stats"][nombre][0] is not None]
             if not con_dato:
-                return {"a_favor": POR_DEFECTO[nombre], "en_contra": POR_DEFECTO[nombre], "n": 0}
+                defecto = ESTADISTICAS[nombre]["defecto"]
+                return {"a_favor": defecto, "en_contra": defecto, "n": 0}
             return {
-                "a_favor": _media(r[clave_favor] for r in con_dato),
-                "en_contra": _media(r[clave_contra] for r in con_dato),
+                "a_favor": _media(favor for favor, _ in con_dato),
+                "en_contra": _media(contra for _, contra in con_dato),
                 "n": len(con_dato),
             }
 
@@ -132,8 +139,7 @@ class AgenteAnalista(Agente):
             "media_gc": _media(r["gc"] for r in registros),
             "ultimos": [{k: r[k] for k in ("fecha", "rival", "condicion", "gf", "gc", "resultado", "competicion")}
                         for r in registros[:5]],
-            "corners": estadistica("cf", "cc", "corners"),
-            "tarjetas": estadistica("tf", "tc", "tarjetas"),
+            "estadisticas": {nombre: estadistica(nombre) for nombre in ESTADISTICAS},
         }
 
 
@@ -146,13 +152,12 @@ def _registro(fecha, rival, es_local, goles_local, goles_visitante, competicion,
         "resultado": "G" if gf > gc else "E" if gf == gc else "P",
         "competicion": competicion, "tipo": tipo,
         "xgf": fila.get("xg" + propio), "xgc": fila.get("xg" + ajeno),
-        "cf": fila.get("corners" + propio), "cc": fila.get("corners" + ajeno),
-        "tf": fila.get("tarjetas" + propio), "tc": fila.get("tarjetas" + ajeno),
+        "stats": {n: (fila.get(n + propio), fila.get(n + ajeno)) for n in ESTADISTICAS},
     }
 
 
 def _mercado(local, visitante, nombre):
-    a, b = local[nombre], visitante[nombre]
+    a, b = local["estadisticas"][nombre], visitante["estadisticas"][nombre]
     lam_l = (a["a_favor"] + b["en_contra"]) / 2
     lam_v = (b["a_favor"] + a["en_contra"]) / 2
     total = lam_l + lam_v
@@ -161,7 +166,8 @@ def _mercado(local, visitante, nombre):
     return {
         "esperados": {"local": lam_l, "visitante": lam_v},
         "total": total,
-        "lineas": [{"linea": l, "mas": 1 - sum(_poisson(k, total) for k in range(int(l) + 1))} for l in LINEAS[nombre]],
+        "lineas": [{"linea": l, "mas": 1 - sum(_poisson(k, total) for k in range(int(l) + 1))}
+                   for l in ESTADISTICAS[nombre]["lineas"]],
         "local_mas": sum(pl[i] * pv[j] for i in range(40) for j in range(i)),
         "visitante_mas": sum(pl[i] * pv[j] for j in range(40) for i in range(j)),
         "fiable": a["n"] >= MIN_PARTIDOS_FIABLE and b["n"] >= MIN_PARTIDOS_FIABLE,
@@ -197,6 +203,5 @@ def _analizar(partido, fichas, media_cl):
             {"texto": "Más de 2.5 goles", "prob": mas_2_5} if mas_2_5 >= 0.5
             else {"texto": "Menos de 2.5 goles", "prob": 1 - mas_2_5}
         ),
-        "corners": _mercado(local, visitante, "corners"),
-        "tarjetas": _mercado(local, visitante, "tarjetas"),
+        "mercados": {nombre: _mercado(local, visitante, nombre) for nombre in ESTADISTICAS},
     }

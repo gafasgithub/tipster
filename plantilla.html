@@ -52,7 +52,26 @@
   }
   @keyframes parpadeo { 50% { opacity: .55; } }
   @media (prefers-reduced-motion: reduce) { .hero::before { animation: none; } }
-  .hero .contenedor { position: relative; padding-block: 36px 34px; }
+  .hero .contenedor {
+    position: relative; padding-block: 36px 34px;
+    display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: center;
+  }
+  .rejilla > *, .hero .contenedor > * { min-width: 0; }
+  .escena { width: 340px; max-width: 100%; height: auto; border: 4px solid #fff; box-shadow: 6px 6px 0 #000; }
+  .balon-escena { animation: rodar 3s steps(6) infinite alternate; }
+  @keyframes rodar { from { transform: translate(-8px, 2px); } to { transform: translate(5px, -3px); } }
+  .hero h1 { display: flex; align-items: center; gap: 14px; }
+  .trofeo { width: 1.3em; height: 1.3em; flex: none; filter: drop-shadow(3px 3px 0 #3a2fb8); }
+  @media (max-width: 820px) {
+    .hero .contenedor { grid-template-columns: minmax(0, 1fr); }
+    .escena { width: 100%; max-width: 380px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .balon-escena { animation: none; } }
+  @media (max-width: 480px) {
+    .tarjeta .forma i { width: 14px; height: 14px; font-size: 6px; border-width: 1px; }
+    .tarjeta .xg .goles { font-size: 14px; padding: 8px 6px 6px; }
+    .tarjeta .equipo .nombre { font-size: 9px; }
+  }
   .marca { display: flex; align-items: center; gap: 12px; font: 12px var(--px); letter-spacing: .2em; color: var(--oro); }
   .marca svg { width: 32px; height: 32px; }
   .hero h1 {
@@ -173,16 +192,19 @@
   .tabla td { padding: 2px 0; } .tabla td:last-child { text-align: right; color: var(--local); }
 
   .pais { font: 8px var(--px); color: var(--suave); border: 2px solid var(--suave); padding: 3px 4px; }
-  .mercados { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-  .mercado { border: 3px solid var(--tinta); background: var(--superficie-2); padding: 10px; }
-  .mercado h4 { margin: 0 0 4px; font: 9px var(--px); display: flex; justify-content: space-between; gap: 6px; }
-  .mercado h4 .estimado { color: var(--media); }
-  .mercado .total { font-size: 19px; color: var(--suave); margin-bottom: 6px; }
-  .mercado .total b { font: 12px var(--px); color: var(--tinta); }
-  .linea { display: grid; grid-template-columns: 52px 1fr 40px; align-items: center; gap: 6px; font-size: 18px; }
-  .linea .pista { height: 10px; border: 2px solid var(--tinta); background: var(--superficie); }
-  .linea .relleno { height: 100%; background: var(--c, var(--local)); }
-  .linea span:last-child { text-align: right; }
+  .mercados { border: 3px solid var(--tinta); background: var(--superficie-2); overflow-x: auto; }
+  .mercados table { width: 100%; border-collapse: collapse; font-size: 17px; }
+  .mercados th { font: 8px var(--px); color: var(--suave); text-align: left; padding: 8px 8px 4px; white-space: nowrap; }
+  .mercados td { padding: 5px 5px; border-top: 2px dotted var(--borde); white-space: nowrap; }
+  .mercados .nombre-m { display: flex; align-items: center; gap: 6px; font: 9px var(--px); }
+  .mercados .nombre-m svg { width: 16px; height: 16px; flex: none; color: var(--tinta); }
+  .mercados .esperado { font: 11px var(--px); }
+  .estimado { color: var(--media); font: 9px var(--px); margin-left: 2px; }
+  .celda { display: flex; align-items: center; gap: 4px; }
+  .celda .pista { width: 22px; height: 9px; border: 2px solid var(--tinta); background: var(--superficie); flex: none; }
+  .celda .relleno { height: 100%; background: var(--c); }
+  .celda b { font-weight: normal; min-width: 30px; text-align: right; }
+  .nota-mercados { font-size: 16px; color: var(--suave); padding: 4px 8px 6px; }
 
   .vacio { text-align: center; padding: 60px 20px; font: 12px/1.8 var(--px); background: var(--superficie); border: 3px solid var(--tinta); box-shadow: 7px 7px 0 var(--sombra); }
   footer { color: var(--suave); font-size: 20px; border-top: 3px solid var(--tinta); padding-block: 22px 40px; }
@@ -194,6 +216,7 @@
 <body>
 <header class="hero">
   <div class="contenedor">
+   <div>
     <div class="marca">
       <!-- balón pixelado -->
       <svg class="pixel" viewBox="0 0 16 16" aria-hidden="true">
@@ -203,9 +226,40 @@
       </svg>
       TIPSTER
     </div>
-    <h1 id="titulo">Champions League</h1>
+    <h1>
+      <svg class="pixel trofeo" viewBox="0 0 12 12" aria-hidden="true">
+        <path fill="#ffcc33" d="M2 1h8v1h2v3h-1v1h-1v1H9v1H8v1H7v1h2v1h1v1H2v-1h1v-1h2V9H4V8H3V7H2V6H1V5H0V2h2zM1 3v1h1V3zM10 3v1h1V3z"/>
+        <path fill="#c98a00" d="M7 2h2v5H8v1H7z M3 11h6v1H3z"/>
+        <path fill="#fff6c9" d="M3 2h1v3H3z"/>
+      </svg>
+      <span id="titulo">Champions League</span>
+    </h1>
     <p class="sub" id="subtitulo"></p>
     <div class="datos-hero" id="datos-hero"></div>
+   </div>
+    <!-- campo de fútbol pixelado -->
+    <svg class="pixel escena" viewBox="0 0 49 31" aria-hidden="true">
+      <rect width="49" height="31" fill="#2f9e44"/>
+      <path fill="#37b34e" d="M1 0h6v31H1z M13 0h6v31h-6z M25 0h6v31h-6z M37 0h6v31h-6z"/>
+      <path fill="#fff" d="M1 1h47v1H1z M1 29h47v1H1z M1 1h1v29H1z M47 1h1v29h-1z M24 1h1v29h-1z
+        M21 12h7v1h-7z M21 18h7v1h-7z M20 13h1v5h-1z M28 13h1v5h-1z
+        M2 9h6v1H2z M2 21h6v1H2z M7 10h1v11H7z M41 9h6v1h-6z M41 21h6v1h-6z M41 10h1v11h-1z"/>
+      <path fill="#e6e6e6" d="M0 12h1v7H0z M48 12h1v7h-1z"/>
+      <g fill="#2f6fe4">
+        <rect x="4" y="15" width="1" height="2"/><rect x="11" y="8" width="1" height="2"/>
+        <rect x="11" y="21" width="1" height="2"/><rect x="17" y="12" width="1" height="2"/>
+        <rect x="18" y="19" width="1" height="2"/><rect x="31" y="14" width="1" height="2"/>
+      </g>
+      <g fill="#e5484d">
+        <rect x="44" y="15" width="1" height="2"/><rect x="37" y="8" width="1" height="2"/>
+        <rect x="37" y="22" width="1" height="2"/><rect x="33" y="17" width="1" height="2"/>
+        <rect x="29" y="9" width="1" height="2"/><rect x="40" y="13" width="1" height="2"/>
+      </g>
+      <g class="balon-escena">
+        <path fill="#fff" d="M35 14h2v1h1v1h-1v1h-2v-1h-1v-1h1z"/>
+        <path fill="#1b1838" d="M35 15h1v1h-1z"/>
+      </g>
+    </svg>
   </div>
   <div class="cesped"></div>
 </header>
@@ -230,7 +284,7 @@
 </main>
 
 <footer class="contenedor">
-  <p><b>CÓMO SE CALCULA</b><br>Para cada equipo se toman sus últimos partidos (hasta 10, en todas las competiciones disponibles) y se mide cuántos goles marca y recibe respecto a la media. Con eso se estiman los goles esperados de cada lado y, con la distribución de Poisson, la probabilidad de cada marcador. La «cuota justa» es 1 ÷ probabilidad: si una casa de apuestas paga más, el modelo cree que hay valor.</p>
+  <p><b>COMO SE CALCULA</b><br>Para cada equipo se toman sus últimos partidos (hasta 10, en todas las competiciones disponibles) y se mide cuántos goles marca y recibe respecto a la media. Con eso se estiman los goles esperados de cada lado y, con la distribución de Poisson, la probabilidad de cada marcador. La «cuota justa» es 1 ÷ probabilidad: si una casa de apuestas paga más, el modelo cree que hay valor.</p>
   <p><b>LIMITACIONES</b><br>El modelo no conoce lesiones, alineaciones, rotaciones ni la calidad de los rivales a los que se enfrentó cada equipo. Son probabilidades, no certezas. Si apuestas, hazlo con responsabilidad.</p>
   <p id="fuentes"></p>
   <p id="generado"></p>
@@ -276,23 +330,56 @@ function equipo(eq) {
   return `<div class="equipo">${escudo(eq)}<span class="nombre">${esc(eq.corto)}</span>${pais}${forma(eq)}</div>`;
 }
 
-function mercado(titulo, m, color) {
-  if (!m) return "";
-  const aviso = m.fiable ? "" : `<span class="estimado" title="Faltan datos de corners/tarjetas de algún equipo; se usa una media general">ESTIMADO</span>`;
-  return `<div class="mercado" style="--c:${color}">
-    <h4><span>${titulo}</span>${aviso}</h4>
-    <div class="total">Total esperado <b>${dec(m.total, 1)}</b> (${dec(m.esperados.local, 1)} + ${dec(m.esperados.visitante, 1)})</div>
-    ${m.lineas.map(l => `<div class="linea"><span>+${String(l.linea).replace(".", ",")}</span>
-      <div class="pista"><div class="relleno" style="width:${(l.mas * 100).toFixed(0)}%"></div></div>
-      <span>${pct(l.mas)}</span></div>`).join("")}
+const pixel = d => `<svg class="pixel" viewBox="0 0 8 8" aria-hidden="true">${d}</svg>`;
+const MERCADOS = {
+  corners:  { titulo: "CORNERS", color: "var(--local)",
+    icono: pixel(`<path fill="currentColor" d="M1 0h1v8H1z"/><path fill="#e5484d" d="M2 0h4v1h1v1H6v1H2z"/>`) },
+  tarjetas: { titulo: "TARJETAS", color: "var(--media)",
+    icono: pixel(`<path fill="#ffcc33" d="M0 1h4v6H0z"/><path fill="#e5484d" d="M3 2h4v6H3z"/>`) },
+  tiros:    { titulo: "TIROS", color: "var(--visitante)",
+    icono: pixel(`<path fill="currentColor" fill-rule="evenodd" d="M1 1h6v6H1zM2 2v4h4V2z"/><path fill="#e5484d" d="M3 3h2v2H3z"/>`) },
+  apuerta:  { titulo: "A PUERTA", color: "var(--gana)",
+    icono: pixel(`<path fill="currentColor" d="M0 1h8v1H0z M0 2h1v6H0z M7 2h1v6H7z"/><path fill="currentColor" opacity=".45" d="M2 3h1v1H2z M4 3h1v1H4z M3 5h1v1H3z M5 5h1v1H5z M2 7h1v1H2z M4 7h1v1H4z"/>`) },
+  faltas:   { titulo: "FALTAS", color: "var(--pierde)",
+    icono: pixel(`<path fill="currentColor" d="M1 3h5v1h1v2H6v1H2V6H1z M5 2h2v1H5z"/><path fill="#ffcc33" d="M3 4h1v1H3z"/>`) },
+};
+
+function filaMercado(clave, m) {
+  const info = MERCADOS[clave];
+  if (!info) return "";
+  const aviso = m.fiable ? "" : `<span class="estimado" title="Faltan datos de algún equipo; se usa una media general">*</span>`;
+  return `<tr style="--c:${info.color}">
+    <td><span class="nombre-m">${info.icono}${info.titulo}${aviso}</span></td>
+    <td class="esperado" title="${dec(m.esperados.local, 1)} + ${dec(m.esperados.visitante, 1)}">${dec(m.total, 1)}</td>
+    ${m.lineas.map(l => `<td><span class="celda" title="Más de ${String(l.linea).replace(".", ",")}">
+      +${String(l.linea).replace(".", ",")}<span class="pista"><span class="relleno" style="display:block;width:${(l.mas * 100).toFixed(0)}%"></span></span><b>${pct(l.mas)}</b>
+    </span></td>`).join("")}
+  </tr>`;
+}
+
+function mercados(p) {
+  if (!p.mercados) return "";
+  const filas = Object.entries(p.mercados);
+  const hayEstimados = filas.some(([, m]) => !m.fiable);
+  return `<div class="mercados">
+    <table>
+      <tr><th>ESTADISTICA</th><th>TOTAL</th><th colspan="3">PROBABILIDAD DE MAS DE...</th></tr>
+      ${filas.map(([clave, m]) => filaMercado(clave, m)).join("")}
+    </table>
+    ${hayEstimados ? `<div class="nota-mercados"><span class="estimado">*</span> Estimado: faltan datos de algún equipo y se usa una media general.</div>` : ""}
   </div>`;
 }
+
+const sinTildes = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 function datosEquipo(eq) {
   if (!eq.datos) return `${dec(eq.media_gf)} goles a favor y ${dec(eq.media_gc)} en contra por partido (${eq.partidos} partidos)`;
   const liga = eq.liga ? `${eq.datos.liga} de ${esc(eq.liga)}` : "sin datos de su liga";
   return `${liga} + ${eq.datos.champions} de Champions.` +
-    (eq.corners && eq.corners.n ? ` Corners: ${dec(eq.corners.a_favor, 1)} a favor / ${dec(eq.corners.en_contra, 1)} en contra. Tarjetas: ${dec(eq.tarjetas.a_favor, 1)} por partido.` : "");
+    (eq.estadisticas && eq.estadisticas.corners.n
+      ? ` Por partido: ${dec(eq.estadisticas.corners.a_favor, 1)} corners, ${dec(eq.estadisticas.tiros.a_favor, 1)} tiros` +
+        ` (${dec(eq.estadisticas.apuerta.a_favor, 1)} a puerta), ${dec(eq.estadisticas.faltas.a_favor, 1)} faltas y ${dec(eq.estadisticas.tarjetas.a_favor, 1)} tarjetas.`
+      : "");
 }
 
 function tarjeta(p) {
@@ -327,10 +414,10 @@ function tarjeta(p) {
       <span class="chip">Ambos marcan<b>${pct(pr.ambos_marcan)}</b></span>
       <span class="chip">Marcador<b>${mejor.local}-${mejor.visitante}</b> ${pct(mejor.prob)}</span>
     </div>
-    ${p.corners ? `<div class="mercados">${mercado("CORNERS", p.corners, "var(--local)")}${mercado("TARJETAS", p.tarjetas, "var(--media)")}</div>` : ""}
+    ${mercados(p)}
     <div class="pick c-${pk.confianza}">
       <div>
-        <div class="t">▶ PRONÓSTICO</div>
+        <div class="t">▶ PRONOSTICO</div>
         <div class="v">${esc(pk.texto)} · ${pct(pk.prob)}</div>
         <div class="extra">${esc(p.pronostico_goles.texto)} (${pct(p.pronostico_goles.prob)}) · cuota justa ${dec(pk.cuota_justa)}</div>
       </div>
@@ -375,7 +462,7 @@ function pintar() {
     if (!dias.has(d)) dias.set(d, []);
     dias.get(d).push(p);
   }
-  cont.innerHTML = [...dias].map(([d, ps]) => `<h2 class="dia">${esc(d)}</h2><div class="rejilla">${ps.map(tarjeta).join("")}</div>`).join("");
+  cont.innerHTML = [...dias].map(([d, ps]) => `<h2 class="dia">${esc(sinTildes(d))}</h2><div class="rejilla">${ps.map(tarjeta).join("")}</div>`).join("");
 }
 
 function botones(id, alCambiar) {
