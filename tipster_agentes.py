@@ -7,7 +7,7 @@ Fútbol:
   4. analista           calcula las probabilidades de goles, corners, tarjetas, tiros y faltas
 Tenis:
   5. tenis-calendario   busca en Wikipedia los torneos en juego y sus partidos pendientes
-  6. tenis-resultados   descarga de tennis-data.co.uk los resultados ATP y WTA recientes
+  6. tenis-resultados   lee en Wikipedia los cuadros de esta temporada y la anterior (resultados)
   7. tenis-traductor    une los nombres de los jugadores entre ambas fuentes
   8. tenis-analista     calcula un Elo por jugador y simula cada partido juego a juego
 Y al final:

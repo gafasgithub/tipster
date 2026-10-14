@@ -45,6 +45,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Guarda entre ejecuciones las páginas ya descargadas (sobre todo los cuadros de
+      # torneos de tenis terminados) para no volver a pedírselas a Wikipedia cada día.
+      - uses: actions/cache@v4
+        if: steps.hora.outputs.seguir == 'si'
+        with:
+          path: .cache/agentes
+          key: agentes-${{ github.run_id }}
+          restore-keys: agentes-
+
       - name: Ejecutar los agentes
         if: steps.hora.outputs.seguir == 'si'
         run: |

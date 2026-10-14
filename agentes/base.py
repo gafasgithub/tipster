@@ -91,7 +91,10 @@ class Agente:
         """Devuelve el contenido de la URL, o None si no existe (404)."""
         CARPETA_CACHE.mkdir(parents=True, exist_ok=True)
         archivo = CARPETA_CACHE / hashlib.sha1(url.encode()).hexdigest()[:16]
-        if archivo.exists() and time.time() - archivo.stat().st_mtime < horas_cache * 3600:
+        # La hora de descarga se guarda aparte: al restaurar la caché en GitHub, la fecha de
+        # los archivos podría no conservarse.
+        hora = archivo.with_name(archivo.name + ".hora")
+        if archivo.exists() and hora.exists() and time.time() - float(hora.read_text()) < horas_cache * 3600:
             return archivo.read_bytes()
 
         self.info(f"Descargando {url}")
@@ -112,6 +115,7 @@ class Agente:
             self.aviso(f"Fallo al descargar ({error}), reintento {intento}/2 en 5 s")
             time.sleep(5)
         archivo.write_bytes(datos)
+        hora.write_text(str(time.time()))
         time.sleep(1)  # pausa de cortesía con las webs
         return datos
 

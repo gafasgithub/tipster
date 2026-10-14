@@ -118,46 +118,98 @@ def _plantillas_cuadro(texto):
 
 
 def _jugador(valor):
-    valor = valor.replace("'''", "")
-    enlace = ENLACE.search(valor)
+    enlace = ENLACE.search(valor.replace("'''", ""))
     if not enlace:
         return None
     pais = PAIS.search(valor)
-    return {"nombre": re.sub(r"\s*\([^)]*\)", "", enlace.group(1)).strip(), "pais": pais.group(1) if pais else ""}
+    nombre = re.sub(r"\s*\([^)]*\)", "", enlace.group(1)).strip()
+    alias = (enlace.group(2) or "").strip()
+    return {"nombre": nombre, "pais": pais.group(1) if pais else "", "alias": alias if alias != nombre else ""}
+
+
+def _partidos_del_cuadro(texto):
+    """Recorre todas las plantillas de cuadro (sin la fase previa) y devuelve, por cada partido
+    con los dos jugadores conocidos: (nombre de la ronda, casilla A, casilla B). Cada casilla
+    trae el jugador, si está en negrita (= ganador) y las puntuaciones de cada set."""
+    corte = re.search(r"^==+\s*Qualif", texto, re.M)
+    texto = re.sub(r"<!--.*?-->", "", texto[:corte.start()] if corte else texto, flags=re.S)
+    for bloque in _plantillas_cuadro(texto):
+        rondas, casillas = {}, {}
+        for linea in bloque.splitlines():
+            m = re.match(r"\s*\|\s*(RD\d+(?:-[a-z]+\d+(?:-\d+)?)?)\s*=\s*(.*)$", linea)
+            if not m:
+                continue
+            clave, valor = m.group(1), m.group(2).strip()
+            if r := re.fullmatch(r"RD(\d+)", clave):
+                rondas[int(r.group(1))] = _limpiar(valor)
+            elif r := re.fullmatch(r"RD(\d+)-team(\d+)", clave):
+                casilla = casillas.setdefault((int(r.group(1)), int(r.group(2))), {"puntuaciones": {}})
+                casilla["jugador"] = _jugador(valor)
+                casilla["gana"] = "'''" in valor
+            elif r := re.fullmatch(r"RD(\d+)-score(\d+)-(\d+)", clave):
+                limpio = re.sub(r"'''|&nbsp;", "", valor).strip()
+                if limpio:
+                    casilla = casillas.setdefault((int(r.group(1)), int(r.group(2))), {"puntuaciones": {}})
+                    casilla["puntuaciones"][int(r.group(3))] = limpio
+        for (ronda, posicion), a in sorted(casillas.items()):
+            b = casillas.get((ronda, posicion + 1))
+            if posicion % 2 == 0 or not b or not a.get("jugador") or not b.get("jugador"):
+                continue
+            nombre_ronda = rondas.get(ronda, "")
+            yield RONDAS.get(nombre_ronda.lower(), nombre_ronda), a, b
+
+
+def _datos_torneo(torneo):
+    return {k: torneo[k] for k in ("circuito", "categoria", "superficie", "interior", "mejor_de")}
 
 
 def partidos_pendientes(texto, torneo):
     """Partidos del cuadro con los dos jugadores decididos y sin marcador."""
-    corte = re.search(r"^==+\s*Qualif", texto, re.M)
-    texto = re.sub(r"<!--.*?-->", "", texto[:corte.start()] if corte else texto, flags=re.S)
     partidos = []
-    for bloque in _plantillas_cuadro(texto):
-        parametros = {}
-        for linea in bloque.splitlines():
-            m = re.match(r"\s*\|\s*(RD\d+(?:-[a-z]+\d+(?:-\d+)?)?)\s*=\s*(.*)$", linea)
-            if m:
-                parametros[m.group(1)] = m.group(2).strip()
-        rondas, jugadores, con_marcador = {}, {}, set()
-        for clave, valor in parametros.items():
-            if m := re.fullmatch(r"RD(\d+)", clave):
-                rondas[int(m.group(1))] = _limpiar(valor)
-            elif m := re.fullmatch(r"RD(\d+)-team(\d+)", clave):
-                if jugador := _jugador(valor):
-                    jugadores[(int(m.group(1)), int(m.group(2)))] = jugador
-            elif m := re.fullmatch(r"RD(\d+)-score(\d+)-\d+", clave):
-                if re.sub(r"'''|&nbsp;|<[^>]+>", "", valor).strip():
-                    con_marcador.add((int(m.group(1)), int(m.group(2))))
-        for (ronda, posicion), a in sorted(jugadores.items()):
-            b = jugadores.get((ronda, posicion + 1))
-            if posicion % 2 == 0 or not b or {(ronda, posicion), (ronda, posicion + 1)} & con_marcador:
-                continue
-            nombre_ronda = rondas.get(ronda, "")
-            partidos.append({
-                "id": f"{torneo['circuito']}-{torneo['nombre']}-{nombre_ronda}-{a['nombre']}",
-                "torneo": torneo["nombre"], "ciudad": torneo["ciudad"], "circuito": torneo["circuito"],
-                "categoria": torneo["categoria"], "superficie": torneo["superficie"],
-                "interior": torneo["interior"], "mejor_de": torneo["mejor_de"],
-                "ronda": RONDAS.get(nombre_ronda.lower(), nombre_ronda),
-                "jugadores": [a, b],
-            })
+    for ronda, a, b in _partidos_del_cuadro(texto):
+        if a["puntuaciones"] or b["puntuaciones"]:
+            continue
+        partidos.append({
+            "id": f"{torneo['circuito']}-{torneo['nombre']}-{ronda}-{a['jugador']['nombre']}",
+            "torneo": torneo["nombre"], "ciudad": torneo["ciudad"], **_datos_torneo(torneo),
+            "ronda": ronda, "jugadores": [a["jugador"], b["jugador"]],
+        })
+    return partidos
+
+
+ORDEN_RONDAS = {"1.ª ronda": 1, "2.ª ronda": 2, "3.ª ronda": 3, "4.ª ronda": 4, "Octavos": 4,
+                "Cuartos de final": 5, "Semifinales": 6, "Final": 7}
+
+
+def partidos_jugados(texto, torneo):
+    """Partidos terminados del cuadro, con el marcador de cada set. Se descartan abandonos y
+    walkovers. La fecha es aproximada: el inicio del torneo más lo que suele tardar esa ronda."""
+    duracion = (torneo["fin"] - torneo["inicio"]).days
+    partidos = []
+    for ronda, a, b in _partidos_del_cuadro(texto):
+        if not a["puntuaciones"] or not b["puntuaciones"] or a["gana"] == b["gana"]:
+            continue
+        valores = list(a["puntuaciones"].values()) + list(b["puntuaciones"].values())
+        if any(re.search(r"r|w/o|def", v, re.I) for v in valores):
+            continue
+        sets = []
+        for n in sorted(a["puntuaciones"]):
+            ja = re.match(r"\d+", a["puntuaciones"][n])
+            jb = re.match(r"\d+", b["puntuaciones"].get(n, ""))
+            if not ja or not jb:
+                break
+            sets.append((int(ja.group()), int(jb.group())))
+        ganador, perdedor = (a, b) if a["gana"] else (b, a)
+        if ganador is b:
+            sets = [(y, x) for x, y in sets]
+        if not sets or sum(g > p for g, p in sets) <= len(sets) / 2:
+            continue  # el marcador no cuadra con el ganador
+        orden = ORDEN_RONDAS.get(ronda, 3)
+        partidos.append({
+            "fecha": torneo["inicio"] + timedelta(days=round(orden / 7 * duracion)),
+            "torneo": torneo["nombre"], "superficie": torneo["superficie"], "ronda": ronda, "orden": orden,
+            "ganador": ganador["jugador"]["nombre"], "perdedor": perdedor["jugador"]["nombre"],
+            "alias": {j["nombre"]: j["alias"] for j in (a["jugador"], b["jugador"]) if j["alias"]},
+            "sets": sets,
+        })
     return partidos

@@ -28,7 +28,7 @@ py tipster.py --abrir           # versión original con la API de football-data.
 | `traductor` | Une los nombres de los equipos entre ambas fuentes |
 | `analista` | Calcula las probabilidades, ajustando por el nivel de cada liga |
 | `tenis-calendario` | Lee en Wikipedia los torneos ATP/WTA de la semana y los partidos pendientes de sus cuadros |
-| `tenis-resultados` | Descarga de tennis-data.co.uk los resultados ATP y WTA de los últimos años |
+| `tenis-resultados` | Lee en Wikipedia los cuadros de todos los torneos ATP y WTA de esta temporada y la anterior |
 | `tenis-traductor` | Une los nombres de los jugadores entre ambas fuentes |
 | `tenis-analista` | Elo por jugador (general y por superficie) y simulación juego a juego: sets, juegos y tie-breaks |
 | `web` | Genera `web_agentes/index.html` con las pestañas de fútbol y tenis |
@@ -40,5 +40,4 @@ Lo que hace cada agente queda en `estado/ejecucion.json` y `estado/eventos.jsonl
 `.github/workflows/actualizar-web.yml` ejecuta los agentes cada día a las 8:00 (hora de España)
 y publica la web en GitHub Pages.
 
-Datos: [Wikipedia](https://en.wikipedia.org) (CC BY-SA), [football-data.co.uk](https://www.football-data.co.uk)
-y [tennis-data.co.uk](http://www.tennis-data.co.uk).
+Datos: [Wikipedia](https://en.wikipedia.org) (CC BY-SA) y [football-data.co.uk](https://www.football-data.co.uk).

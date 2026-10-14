@@ -92,11 +92,16 @@ def estadisticas_reales(partidos, desde):
     return resultado
 
 
-def _corto(nombre_td, nombre_wiki):
-    if not nombre_td:
-        return nombre_wiki
-    apellido, _, inicial = nombre_td.rpartition(" ")
-    return f"{inicial} {apellido}" if apellido else nombre_td
+def _corto(nombre, alias=""):
+    """Nombre corto: "A. Zverev". Los cuadros de Wikipedia ya lo traen como "A Zverev" (o
+    "Q Zheng" para nombres asiáticos); si no, se forma con la inicial y el resto del nombre."""
+    if alias:
+        inicial, _, resto = alias.partition(" ")
+        if resto and len(inicial) <= 3 and inicial[:1].isupper():
+            return f"{inicial}. {resto}"
+        return alias
+    palabras = nombre.split()
+    return f"{palabras[0][0]}. {' '.join(palabras[1:])}" if len(palabras) > 1 else nombre
 
 
 class AgenteTenisAnalista(Agente):
@@ -106,7 +111,8 @@ class AgenteTenisAnalista(Agente):
         hoy = datetime.now(timezone.utc).date()
         elos, calibracion = {}, {}
         circuitos = {p["circuito"] for p in calendario["partidos"]}
-        for circuito, partidos in resultados.items():
+        self.alias = resultados["alias"]
+        for circuito, partidos in resultados["partidos"].items():
             elos[circuito] = calcular_elo(partidos)
             general = elos[circuito][0]
             mejores = sorted(general.items(), key=lambda kv: kv[1], reverse=True)[:3]
@@ -129,7 +135,7 @@ class AgenteTenisAnalista(Agente):
         analizados = []
         for partido in calendario["partidos"]:
             circuito, sup = partido["circuito"], partido["superficie"]
-            fichas = [self._ficha(j, mapa.get(f"{circuito}|{j['nombre']}"), resultados[circuito],
+            fichas = [self._ficha(j, mapa.get(f"{circuito}|{j['nombre']}"), resultados["partidos"][circuito],
                                   elos[circuito], sup, hoy) for j in partido["jugadores"]]
             a, b = fichas
             prob_a = 1 / (1 + 10 ** ((b["elo"] - a["elo"]) / 400))
@@ -168,20 +174,16 @@ class AgenteTenisAnalista(Agente):
             gano = p["ganador"] == nombre_td
             ultimos.append({
                 "fecha": p["fecha"].isoformat(), "torneo": p["torneo"],
-                "rival": _corto(p["perdedor"] if gano else p["ganador"], ""),
+                "rival": _corto(rival := p["perdedor"] if gano else p["ganador"], self.alias.get(rival, "")),
                 "resultado": "G" if gano else "P",
                 "marcador": " ".join(f"{g}-{l}" if gano else f"{l}-{g}" for g, l in p["sets"]),
             })
-        ranking = None
-        if propios:
-            ultimo = propios[-1]
-            ranking = ultimo["ranking_ganador"] if ultimo["ganador"] == nombre_td else ultimo["ranking_perdedor"]
-
         palabras = jugador["nombre"].replace("-", " ").split()
         return {
-            "nombre": jugador["nombre"], "corto": _corto(nombre_td, jugador["nombre"]),
+            "nombre": jugador["nombre"],
+            "corto": _corto(jugador["nombre"], jugador.get("alias") or self.alias.get(nombre_td or "", "")),
             "tla": "".join(p[0] for p in palabras[:3]).upper(), "pais": jugador["pais"],
-            "ranking": ranking, "elo": valor,
+            "elo": valor,
             "elo_general": general[nombre_td] if nombre_td else None,
             "elo_superficie": por_superficie[(nombre_td, superficie)] if nombre_td else None,
             "partidos_anio": len(ultimo_anio),

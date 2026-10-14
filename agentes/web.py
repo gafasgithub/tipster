@@ -9,8 +9,7 @@ FUENTES_FUTBOL = [
     {"nombre": "football-data.co.uk (resultados y estadísticas de ligas)", "url": "https://www.football-data.co.uk"},
 ]
 FUENTES_TENIS = [
-    {"nombre": "Wikipedia (torneos y cuadros, licencia CC BY-SA)", "url": "https://en.wikipedia.org"},
-    {"nombre": "tennis-data.co.uk (resultados ATP y WTA)", "url": "http://www.tennis-data.co.uk"},
+    {"nombre": "Wikipedia (torneos, cuadros y resultados ATP y WTA, licencia CC BY-SA)", "url": "https://en.wikipedia.org"},
 ]
 
 

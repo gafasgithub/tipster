@@ -1,9 +1,11 @@
-"""Agente Tenis-Traductor: une los nombres de Wikipedia ("Alex de Minaur")
-con los de tennis-data.co.uk ("De Minaur A.")."""
+"""Agente Tenis-Traductor: comprueba que cada jugador del calendario aparece en los resultados.
+
+Las dos cosas vienen de Wikipedia, así que casi siempre el nombre coincide tal cual. Si no,
+se prueba sin tildes ni guiones y, por último, con un parecido muy alto.
+"""
 import difflib
 import re
 import unicodedata
-from collections import Counter, defaultdict
 
 from .base import Agente
 
@@ -15,59 +17,34 @@ def normalizar(texto):
     return " ".join(re.split(r"[^a-z0-9]+", texto)).strip()
 
 
-def _clave(nombre_corto):
-    """'De Minaur A.' -> ('de minaur', 'a')"""
-    partes = nombre_corto.strip().rsplit(" ", 1)
-    if len(partes) < 2:
-        return normalizar(nombre_corto), ""
-    return normalizar(partes[0]), normalizar(partes[1])[:1]
-
-
 class AgenteTenisTraductor(Agente):
     nombre = "tenis-traductor"
 
     def trabajar(self, partidos, resultados):
-        indices = {c: self._indice(lista) for c, lista in resultados.items()}
-        mapa, sin_traducir = {}, []
+        indices = {}
+        for circuito, lista in resultados["partidos"].items():
+            nombres = {n for p in lista for n in (p["ganador"], p["perdedor"])}
+            indices[circuito] = (nombres, {normalizar(n): n for n in nombres})
+        mapa, sin_traducir, aproximados = {}, [], 0
         for partido in partidos:
+            nombres, normalizados = indices[partido["circuito"]]
             for jugador in partido["jugadores"]:
                 clave = f"{partido['circuito']}|{jugador['nombre']}"
                 if clave in mapa:
                     continue
-                encontrado, metodo = self._buscar(jugador["nombre"], *indices[partido["circuito"]])
-                mapa[clave] = encontrado
-                if encontrado:
-                    self.info(f"{jugador['nombre']} → {encontrado} ({metodo})")
+                nombre = jugador["nombre"]
+                if nombre in nombres:
+                    mapa[clave] = nombre
+                    continue
+                parecido = normalizados.get(normalizar(nombre)) or next(iter(
+                    normalizados[n] for n in difflib.get_close_matches(normalizar(nombre), list(normalizados), n=1, cutoff=0.9)), None)
+                mapa[clave] = parecido
+                if parecido:
+                    aproximados += 1
+                    self.info(f"{nombre} → {parecido}")
                 else:
-                    sin_traducir.append(jugador["nombre"])
-                    self.aviso(f"No encuentro resultados de {jugador['nombre']} ({partido['circuito']})")
+                    sin_traducir.append(nombre)
+                    self.aviso(f"No hay resultados de {nombre} ({partido['circuito']}) en las dos últimas temporadas")
         self.metricas = {"jugadores": len(mapa), "traducidos": sum(1 for v in mapa.values() if v),
-                         "sin_traducir": sin_traducir}
+                         "aproximados": aproximados, "sin_traducir": sin_traducir}
         return mapa
-
-    def _indice(self, partidos):
-        frecuencia = Counter(n for p in partidos for n in (p["ganador"], p["perdedor"]))
-        por_clave, por_apellido = defaultdict(list), defaultdict(list)
-        for nombre in frecuencia:
-            apellido, inicial = _clave(nombre)
-            por_clave[(apellido, inicial)].append(nombre)
-            por_apellido[apellido].append(nombre)
-        return por_clave, por_apellido, frecuencia
-
-    def _buscar(self, nombre, por_clave, por_apellido, frecuencia):
-        palabras = normalizar(nombre).split()
-        if len(palabras) < 2:
-            return None, None
-        candidatas = [(" ".join(palabras[i:]), palabras[0][0]) for i in range(1, len(palabras))]
-        candidatas.append((palabras[0], palabras[1][0]))  # nombres asiáticos: apellido primero
-        for clave in candidatas:
-            if clave in por_clave:
-                return max(por_clave[clave], key=frecuencia.get), "exacto"
-        for i in range(1, len(palabras)):
-            apellido = " ".join(palabras[i:])
-            if len(por_apellido.get(apellido, [])) == 1:
-                return por_apellido[apellido][0], "apellido"
-        parecidos = difflib.get_close_matches(" ".join(palabras[1:]), list(por_apellido), n=1, cutoff=0.85)
-        if parecidos and len(por_apellido[parecidos[0]]) == 1:
-            return por_apellido[parecidos[0]][0], "aproximado"
-        return None, None
