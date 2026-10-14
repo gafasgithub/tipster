@@ -1,0 +1,62 @@
+name: Actualizar web
+
+on:
+  schedule:
+    # GitHub usa hora UTC. Para que sean las 8:00 en España todo el año
+    # hay dos horarios, y el paso "hora" deja pasar solo el que toca.
+    - cron: "0 6 * * *"   # 8:00 en horario de verano (CEST)
+    - cron: "0 7 * * *"   # 8:00 en horario de invierno (CET)
+  workflow_dispatch:      # botón para lanzarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.desplegar.outputs.page_url }}
+    steps:
+      - name: Comprobar el horario de España
+        id: hora
+        run: |
+          if [ "$(TZ=Europe/Madrid date +%z)" = "+0200" ]; then toca="0 6 * * *"; else toca="0 7 * * *"; fi
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "${{ github.event.schedule }}" = "$toca" ]; then
+            echo "seguir=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "Este horario no corresponde a las 8:00 en España; se omite."
+            echo "seguir=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.hora.outputs.seguir == 'si'
+
+      - uses: actions/setup-python@v5
+        if: steps.hora.outputs.seguir == 'si'
+        with:
+          python-version: "3.12"
+
+      - name: Generar pronósticos
+        if: steps.hora.outputs.seguir == 'si'
+        run: python tipster.py
+        env:
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+
+      - uses: actions/configure-pages@v5
+        if: steps.hora.outputs.seguir == 'si'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.hora.outputs.seguir == 'si'
+        with:
+          path: web
+
+      - uses: actions/deploy-pages@v4
+        id: desplegar
+        if: steps.hora.outputs.seguir == 'si'

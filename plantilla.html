@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIPSTER · Champions League</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --px: "Press Start 2P", "Courier New", monospace;
+    --txt: "VT323", "Consolas", "Courier New", monospace;
+    --fondo: #efe6cf; --superficie: #fffaf0; --superficie-2: #f6edd6;
+    --tinta: #1b1838; --suave: #6a6290; --sombra: #1b1838;
+    --local: #2f6fe4; --empate: #a9a3bf; --visitante: #e5484d;
+    --gana: #2fa84f; --iguala: #8f89a8; --pierde: #d8414a;
+    --alta: #2fa84f; --media: #e0a100; --baja: #8f89a8;
+    --oro: #ffcc33;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #0d0a24; --superficie: #1a1640; --superficie-2: #241f52;
+      --tinta: #f1ecff; --suave: #a79fd6; --sombra: #000000;
+      --local: #4fa3ff; --empate: #5d5785; --visitante: #ff5c6c;
+      --gana: #49e07a; --iguala: #8c86b3; --pierde: #ff5c6c;
+      --alta: #49e07a; --media: #ffcc33; --baja: #8c86b3;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--tinta);
+    font: 21px/1.15 var(--txt);
+    background-image: radial-gradient(color-mix(in srgb, var(--tinta) 9%, transparent) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+  .contenedor { max-width: 1160px; margin: 0 auto; padding-inline: 16px; }
+  svg.pixel { shape-rendering: crispEdges; }
+
+  /* ---------- Cabecera: cielo nocturno + césped ---------- */
+  .hero { position: relative; color: #fff; background: #0b0830; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; width: 4px; height: 4px; left: 0; top: 0; background: #fff;
+    box-shadow:
+      40px 30px #fff, 140px 90px #b8b2ff, 260px 40px #fff, 380px 120px #ffcc33, 470px 60px #fff,
+      560px 20px #b8b2ff, 690px 100px #fff, 800px 44px #fff, 900px 130px #b8b2ff, 1010px 70px #ffcc33,
+      1120px 24px #fff, 1240px 110px #fff, 1360px 50px #b8b2ff, 1480px 92px #fff, 1600px 30px #fff,
+      90px 170px #fff, 330px 200px #b8b2ff, 620px 180px #fff, 960px 210px #fff, 1300px 190px #ffcc33;
+    animation: parpadeo 2.4s steps(2) infinite;
+  }
+  @keyframes parpadeo { 50% { opacity: .55; } }
+  @media (prefers-reduced-motion: reduce) { .hero::before { animation: none; } }
+  .hero .contenedor { position: relative; padding-block: 36px 34px; }
+  .marca { display: flex; align-items: center; gap: 12px; font: 12px var(--px); letter-spacing: .2em; color: var(--oro); }
+  .marca svg { width: 32px; height: 32px; }
+  .hero h1 {
+    margin: 18px 0 10px; font: clamp(18px, 3.6vw, 32px)/1.35 var(--px);
+    text-shadow: 4px 4px 0 #3a2fb8;
+  }
+  .hero .sub { margin: 0; font-size: 24px; color: #c9c3ff; }
+  .datos-hero { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+  .dato { background: #1d1856; border: 3px solid #fff; box-shadow: 4px 4px 0 #000; padding: 8px 12px; }
+  .dato b { display: block; font: 16px var(--px); color: var(--oro); margin-bottom: 4px; }
+  .dato span { font-size: 18px; color: #c9c3ff; }
+  .cesped {
+    height: 40px; border-top: 4px solid #fff;
+    background: repeating-linear-gradient(90deg, #2f9e44 0 48px, #37b34e 48px 96px);
+    box-shadow: inset 0 -8px 0 #237a33;
+  }
+
+  main { padding-block: 26px 40px; }
+  .aviso-demo {
+    background: var(--oro); color: #1b1838; border: 3px solid var(--tinta); box-shadow: 5px 5px 0 var(--sombra);
+    padding: 10px 14px; margin-bottom: 18px; font-size: 21px;
+  }
+  .aviso-demo b { font: 11px var(--px); margin-right: 8px; }
+
+  /* ---------- Controles ---------- */
+  .controles {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px;
+    background: var(--superficie); border: 3px solid var(--tinta); box-shadow: 6px 6px 0 var(--sombra);
+    padding: 12px; margin-bottom: 22px;
+  }
+  .grupo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .grupo .etq { font: 10px var(--px); color: var(--suave); margin-right: 4px; }
+  .boton {
+    font: 10px var(--px); color: var(--tinta); background: var(--superficie-2);
+    border: 3px solid var(--tinta); box-shadow: 3px 3px 0 var(--sombra);
+    padding: 8px 10px; cursor: pointer;
+  }
+  .boton:active { transform: translate(3px, 3px); box-shadow: none; }
+  .boton[aria-pressed="true"] { background: var(--local); color: #fff; }
+
+  .dia { margin: 30px 0 14px; font: 12px var(--px); text-transform: uppercase; color: var(--tinta); display: flex; align-items: center; gap: 10px; }
+  .dia::before { content: ""; width: 12px; height: 12px; background: var(--oro); border: 3px solid var(--tinta); }
+  .dia:first-child { margin-top: 4px; }
+  .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 490px), 1fr)); gap: 22px; }
+
+  /* ---------- Tarjeta ---------- */
+  .tarjeta {
+    background: var(--superficie); border: 3px solid var(--tinta); box-shadow: 7px 7px 0 var(--sombra);
+    padding: 16px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .cab { display: flex; justify-content: space-between; align-items: center; font: 10px var(--px); color: var(--suave); }
+  .estado { font: 9px var(--px); padding: 5px 7px; background: var(--pierde); color: #fff; animation: parpadeo 1s steps(2) infinite; }
+
+  .duelo { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+  .equipo { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; min-width: 0; }
+  .equipo .nombre { font: 11px/1.5 var(--px); overflow-wrap: anywhere; }
+  .escudo {
+    width: 58px; height: 58px; display: grid; place-items: center;
+    background: var(--superficie-2); border: 3px solid var(--tinta); box-shadow: 3px 3px 0 var(--sombra);
+    font: 11px var(--px); color: var(--suave);
+  }
+  .escudo img { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+  .xg { text-align: center; }
+  .xg .goles {
+    font: 20px var(--px); background: var(--tinta); color: var(--oro);
+    padding: 10px 10px 8px; border: 3px solid var(--tinta); white-space: nowrap;
+  }
+  .xg .goles .sep { color: var(--suave); margin: 0 6px; }
+  .xg small { display: block; font-size: 17px; color: var(--suave); margin-top: 6px; }
+  .forma { display: flex; gap: 3px; }
+  .forma i {
+    font: 8px var(--px); font-style: normal; width: 18px; height: 18px; display: grid; place-items: center;
+    color: #fff; border: 2px solid var(--tinta);
+  }
+  .r-G { background: var(--gana); } .r-E { background: var(--iguala); } .r-P { background: var(--pierde); }
+
+  /* Barra estilo "vida" de videojuego */
+  .barra { display: flex; height: 30px; border: 3px solid var(--tinta); background: var(--tinta); gap: 3px; box-shadow: 4px 4px 0 var(--sombra); }
+  .seg {
+    display: grid; place-items: center; font: 10px var(--px); color: #fff; min-width: 4px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,.45);
+    background-image: repeating-linear-gradient(90deg, transparent 0 10px, rgba(0,0,0,.18) 10px 12px),
+                      linear-gradient(rgba(255,255,255,.28) 0 4px, transparent 4px);
+  }
+  .seg.l { background-color: var(--local); } .seg.x { background-color: var(--empate); } .seg.v { background-color: var(--visitante); }
+  .leyenda { display: grid; grid-template-columns: repeat(3, 1fr); font-size: 19px; color: var(--suave); margin-top: 8px; }
+  .leyenda span:nth-child(2) { text-align: center; } .leyenda span:nth-child(3) { text-align: right; }
+  .leyenda b { color: var(--tinta); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: var(--superficie-2); border: 2px dashed var(--suave); padding: 4px 8px; font-size: 19px; color: var(--suave); }
+  .chip b { color: var(--tinta); font: 11px var(--px); margin-left: 6px; }
+
+  .pick {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 12px; background: var(--superficie-2); border: 3px solid var(--c); box-shadow: 4px 4px 0 var(--c);
+  }
+  .pick .t { font: 9px var(--px); color: var(--suave); margin-bottom: 6px; }
+  .pick .v { font: 12px/1.5 var(--px); }
+  .pick .extra { font-size: 19px; color: var(--suave); margin-top: 4px; }
+  .conf { text-align: right; font: 9px/1.8 var(--px); color: var(--c); white-space: nowrap; }
+  .conf .estrellas { font-size: 16px; letter-spacing: 2px; }
+  .c-alta { --c: var(--alta); } .c-media { --c: var(--media); } .c-baja { --c: var(--baja); }
+
+  details { border-top: 3px dotted var(--suave); padding-top: 12px; }
+  summary { cursor: pointer; font: 10px var(--px); color: var(--local); list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▶ "; }
+  details[open] summary::before { content: "▼ "; }
+  .detalle { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-top: 14px; font-size: 19px; }
+  .detalle h4 { margin: 0 0 8px; font: 9px var(--px); color: var(--suave); text-transform: uppercase; }
+  .lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .lista li { display: flex; align-items: center; gap: 8px; }
+  .lista .comp { color: var(--suave); font-size: 16px; margin-left: auto; text-align: right; line-height: 1; }
+  .lista .forma i { flex: none; }
+  .nota { margin: 8px 0 0; color: var(--suave); font-size: 18px; }
+  .tabla { width: 100%; border-collapse: collapse; }
+  .tabla td { padding: 2px 0; } .tabla td:last-child { text-align: right; color: var(--local); }
+
+  .vacio { text-align: center; padding: 60px 20px; font: 12px/1.8 var(--px); background: var(--superficie); border: 3px solid var(--tinta); box-shadow: 7px 7px 0 var(--sombra); }
+  footer { color: var(--suave); font-size: 20px; border-top: 3px solid var(--tinta); padding-block: 22px 40px; }
+  footer p { margin: 0 0 10px; max-width: 820px; }
+  footer b { font: 10px var(--px); color: var(--tinta); }
+  code { font-family: var(--txt); background: var(--superficie-2); padding: 0 4px; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="contenedor">
+    <div class="marca">
+      <!-- balón pixelado -->
+      <svg class="pixel" viewBox="0 0 16 16" aria-hidden="true">
+        <path fill="#1b1838" d="M5 1h6v1h2v1h1v2h1v6h-1v2h-1v1h-2v1H5v-1H3v-1H2v-2H1V5h1V3h1V2h2z"/>
+        <path fill="#fff" d="M5 2h6v1h2v2h1v6h-1v2h-2v1H5v-1H3v-2H2V5h1V3h2z"/>
+        <path fill="#1b1838" d="M7 5h2v1h1v2H9v1H7V8H6V6h1z M3 6h1v2H3z M12 6h1v2h-1z M6 12h1v1H6z M9 12h1v1H9z M7 2h2v1H7z"/>
+      </svg>
+      TIPSTER
+    </div>
+    <h1 id="titulo">Champions League</h1>
+    <p class="sub" id="subtitulo"></p>
+    <div class="datos-hero" id="datos-hero"></div>
+  </div>
+  <div class="cesped"></div>
+</header>
+
+<main class="contenedor">
+  <div id="aviso"></div>
+  <div class="controles">
+    <div class="grupo" id="orden">
+      <span class="etq">ORDEN</span>
+      <button class="boton" data-v="hora" aria-pressed="true">HORARIO</button>
+      <button class="boton" data-v="confianza" aria-pressed="false">CONFIANZA</button>
+    </div>
+    <div class="grupo" id="filtro">
+      <span class="etq">FILTRO</span>
+      <button class="boton" data-v="todas" aria-pressed="true">TODAS</button>
+      <button class="boton" data-v="alta" aria-pressed="false">ALTA</button>
+      <button class="boton" data-v="media" aria-pressed="false">MEDIA</button>
+      <button class="boton" data-v="baja" aria-pressed="false">BAJA</button>
+    </div>
+  </div>
+  <div id="partidos"></div>
+</main>
+
+<footer class="contenedor">
+  <p><b>CÓMO SE CALCULA</b><br>Para cada equipo se toman sus últimos partidos (hasta 10, en todas las competiciones disponibles) y se mide cuántos goles marca y recibe respecto a la media. Con eso se estiman los goles esperados de cada lado y, con la distribución de Poisson, la probabilidad de cada marcador. La «cuota justa» es 1 ÷ probabilidad: si una casa de apuestas paga más, el modelo cree que hay valor.</p>
+  <p><b>LIMITACIONES</b><br>El modelo no conoce lesiones, alineaciones, rotaciones ni la calidad de los rivales a los que se enfrentó cada equipo. Son probabilidades, no certezas. Si apuestas, hazlo con responsabilidad.</p>
+  <p>Datos proporcionados por <a href="https://www.football-data.org" style="color:inherit">football-data.org</a>.</p>
+  <p id="generado"></p>
+</footer>
+
+<script>
+const DATOS = /*__DATOS__*/null;
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = p => Math.round(p * 100) + "%";
+const dec = (n, d = 2) => n == null ? "–" : n.toFixed(d).replace(".", ",");
+const fmtDia = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long" });
+const fmtHora = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" });
+const fmtCorta = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
+const ORDEN_CONF = { alta: 0, media: 1, baja: 2 };
+const ESTRELLAS = { alta: "★★★", media: "★★☆", baja: "★☆☆" };
+const NOMBRE_RESULTADO = { G: "Ganó", E: "Empató", P: "Perdió" };
+let orden = "hora", filtro = "todas";
+
+function escudo(eq) {
+  const ini = esc((eq.tla || eq.corto || "?").slice(0, 3).toUpperCase());
+  if (eq.escudo) return `<span class="escudo"><img src="${esc(eq.escudo)}" alt="" loading="lazy" onerror="this.parentNode.textContent='${ini}'"></span>`;
+  return `<span class="escudo">${ini}</span>`;
+}
+
+function forma(eq) {
+  if (!eq.ultimos.length) return `<span class="forma" style="font-size:16px;color:var(--suave)">Sin datos</span>`;
+  return `<span class="forma" title="Últimos partidos (el más reciente a la derecha)">` +
+    [...eq.ultimos].reverse().map(u => `<i class="r-${u.resultado}" title="${NOMBRE_RESULTADO[u.resultado]} ${u.gf}-${u.gc} vs ${esc(u.rival)}">${u.resultado}</i>`).join("") +
+    `</span>`;
+}
+
+function ultimos(eq) {
+  if (!eq.ultimos.length) return `<p class="nota">Sin partidos recientes.</p>`;
+  return `<ul class="lista">` + eq.ultimos.map(u => `
+    <li><span class="forma"><i class="r-${u.resultado}">${u.resultado}</i></span>
+      <span>${u.gf}-${u.gc} ${u.condicion === "L" ? "vs" : "en"} ${esc(u.rival)}</span>
+      <span class="comp">${esc(u.competicion)}<br>${fmtCorta.format(new Date(u.fecha))}</span></li>`).join("") + `</ul>`;
+}
+
+function tarjeta(p) {
+  const pr = p.probabilidades, L = p.equipos.local, V = p.equipos.visitante, ge = p.goles_esperados, pk = p.pronostico;
+  const seg = (cls, v, nombre) => `<div class="seg ${cls}" style="flex:${v} 1 0" title="${esc(nombre)}: ${pct(v)}">${v >= 0.14 ? pct(v) : ""}</div>`;
+  const mejor = p.marcadores[0];
+  const enJuego = p.estado === "IN_PLAY" || p.estado === "PAUSED";
+  return `
+  <article class="tarjeta">
+    <div class="cab">
+      <span>⏱ ${fmtHora.format(new Date(p.fecha))}</span>
+      ${enJuego ? `<span class="estado">EN JUEGO</span>` : ""}
+    </div>
+    <div class="duelo">
+      <div class="equipo">${escudo(L)}<span class="nombre">${esc(L.corto)}</span>${forma(L)}</div>
+      <div class="xg">
+        <div class="goles">${dec(ge.local, 1)}<span class="sep">:</span>${dec(ge.visitante, 1)}</div>
+        <small>goles esperados</small>
+      </div>
+      <div class="equipo">${escudo(V)}<span class="nombre">${esc(V.corto)}</span>${forma(V)}</div>
+    </div>
+    <div>
+      <div class="barra">${seg("l", pr.local, L.corto)}${seg("x", pr.empate, "Empate")}${seg("v", pr.visitante, V.corto)}</div>
+      <div class="leyenda">
+        <span>1 · <b>${pct(pr.local)}</b></span>
+        <span>X · <b>${pct(pr.empate)}</b></span>
+        <span>2 · <b>${pct(pr.visitante)}</b></span>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip">+2.5 goles<b>${pct(pr.mas_2_5)}</b></span>
+      <span class="chip">Ambos marcan<b>${pct(pr.ambos_marcan)}</b></span>
+      <span class="chip">Marcador<b>${mejor.local}-${mejor.visitante}</b> ${pct(mejor.prob)}</span>
+    </div>
+    <div class="pick c-${pk.confianza}">
+      <div>
+        <div class="t">▶ PRONÓSTICO</div>
+        <div class="v">${esc(pk.texto)} · ${pct(pk.prob)}</div>
+        <div class="extra">${esc(p.pronostico_goles.texto)} (${pct(p.pronostico_goles.prob)}) · cuota justa ${dec(pk.cuota_justa)}</div>
+      </div>
+      <div class="conf"><div class="estrellas">${ESTRELLAS[pk.confianza]}</div>CONF. ${pk.confianza.toUpperCase()}</div>
+    </div>
+    <details>
+      <summary>VER DETALLE</summary>
+      <div class="detalle">
+        <div><h4>${esc(L.corto)}</h4>${ultimos(L)}
+          <p class="nota">${dec(L.media_gf)} goles a favor y ${dec(L.media_gc)} en contra por partido (${L.partidos} partidos)</p></div>
+        <div><h4>${esc(V.corto)}</h4>${ultimos(V)}
+          <p class="nota">${dec(V.media_gf)} goles a favor y ${dec(V.media_gc)} en contra por partido (${V.partidos} partidos)</p></div>
+        <div><h4>Marcadores más probables</h4>
+          <table class="tabla">${p.marcadores.map(m => `<tr><td>${esc(L.corto)} ${m.local}-${m.visitante} ${esc(V.corto)}</td><td>${pct(m.prob)}</td></tr>`).join("")}</table>
+          <h4 style="margin-top:14px">Cuotas justas</h4>
+          <table class="tabla">
+            <tr><td>1 · ${esc(L.corto)}</td><td>${dec(1 / pr.local)}</td></tr>
+            <tr><td>X · Empate</td><td>${dec(1 / pr.empate)}</td></tr>
+            <tr><td>2 · ${esc(V.corto)}</td><td>${dec(1 / pr.visitante)}</td></tr>
+          </table>
+        </div>
+      </div>
+    </details>
+  </article>`;
+}
+
+function pintar() {
+  const cont = document.getElementById("partidos");
+  let lista = DATOS.partidos.filter(p => filtro === "todas" || p.pronostico.confianza === filtro);
+  if (!lista.length) {
+    cont.innerHTML = `<div class="vacio">${DATOS.partidos.length ? "NO HAY PARTIDOS<br>CON ESA CONFIANZA" : "NO HAY PARTIDOS<br>PENDIENTES"}</div>`;
+    return;
+  }
+  if (orden === "confianza") {
+    lista = [...lista].sort((a, b) => ORDEN_CONF[a.pronostico.confianza] - ORDEN_CONF[b.pronostico.confianza] || b.pronostico.prob - a.pronostico.prob);
+    cont.innerHTML = `<div class="rejilla">${lista.map(tarjeta).join("")}</div>`;
+    return;
+  }
+  const dias = new Map();
+  for (const p of lista) {
+    const d = fmtDia.format(new Date(p.fecha));
+    if (!dias.has(d)) dias.set(d, []);
+    dias.get(d).push(p);
+  }
+  cont.innerHTML = [...dias].map(([d, ps]) => `<h2 class="dia">${esc(d)}</h2><div class="rejilla">${ps.map(tarjeta).join("")}</div>`).join("");
+}
+
+function botones(id, alCambiar) {
+  const grupo = document.getElementById(id);
+  grupo.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    grupo.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    alCambiar(b.dataset.v);
+    pintar();
+  });
+}
+
+function iniciar() {
+  if (!DATOS) {
+    document.getElementById("partidos").innerHTML = `<div class="vacio">ESTA ES LA PLANTILLA<br>Ejecuta <code>py tipster.py</code></div>`;
+    return;
+  }
+  const ps = DATOS.partidos;
+  document.getElementById("titulo").textContent = DATOS.jornada || "Champions League";
+  const fechas = ps.map(p => new Date(p.fecha));
+  const rango = fechas.length
+    ? [fechas[0], fechas[fechas.length - 1]].map(f => fmtCorta.format(f)).filter((v, i, a) => a.indexOf(v) === i).join(" – ")
+    : "";
+  document.getElementById("subtitulo").textContent = DATOS.competicion + (rango ? " · " + rango : "");
+  const altas = ps.filter(p => p.pronostico.confianza === "alta").length;
+  document.getElementById("datos-hero").innerHTML = `
+    <div class="dato"><b>${ps.length}</b><span>partidos</span></div>
+    <div class="dato"><b>${altas}</b><span>confianza alta</span></div>
+    <div class="dato"><b>${dec(DATOS.media_goles)}</b><span>goles por equipo (media)</span></div>`;
+  if (DATOS.demo) document.getElementById("aviso").innerHTML = `<div class="aviso-demo"><b>! DEMO</b>Los equipos son reales, pero los resultados y las estadísticas son inventados. Sirve solo para ver cómo luce la web.</div>`;
+  document.getElementById("generado").textContent = "Generado el " + new Date(DATOS.generado).toLocaleString("es-ES") + ".";
+  botones("orden", v => orden = v);
+  botones("filtro", v => filtro = v);
+  pintar();
+}
+iniciar();
+</script>
+</body>
+</html>
