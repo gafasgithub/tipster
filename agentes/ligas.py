@@ -61,7 +61,7 @@ class AgenteLigas(Agente):
                       f"{media:.2f} goles por equipo")
 
         if sin_fuente:
-            self.aviso(f"Sin fuente de liga para: {', '.join(sin_fuente)} (solo se usarán sus partidos de Champions)")
+            self.aviso(f"Sin fuente de liga para: {', '.join(sin_fuente)} (solo se usarán sus partidos europeos)")
         self.metricas = {
             "ligas": len(ligas), "partidos": sum(len(l["partidos"]) for l in ligas.values()),
             "paises_sin_fuente": sin_fuente,

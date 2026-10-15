@@ -1,9 +1,14 @@
-"""Agente Calendario: lee en Wikipedia los partidos y resultados de la Champions."""
+"""Agente Calendario: lee en Wikipedia los partidos y resultados de la Champions y la Europa League."""
 import re
 from datetime import datetime, timedelta, timezone
 
 from .base import Agente
 
+# clave -> (nombre en Wikipedia, prefijo de los id, nombre corto)
+COMPETICIONES = {
+    "champions": ("UEFA Champions League", "cl", "Champions"),
+    "europa": ("UEFA Europa League", "el", "Europa League"),
+}
 PAGINAS = [("league phase", "LEAGUE_STAGE"), ("knockout phase", None)]
 
 CABECERA = re.compile(r"^(={2,5})\s*([^=\n]+?)\s*\1[ \t]*$", re.M)
@@ -30,29 +35,36 @@ class AgenteCalendario(Agente):
 
     def trabajar(self):
         temporada = temporada_actual(datetime.now(timezone.utc))
-        partidos = []
-        for sufijo, etapa in PAGINAS:
-            pagina = f"{temporada} UEFA Champions League {sufijo}"
-            texto = self.wikitexto(pagina)
-            if texto is None:
-                self.info(f"La página «{pagina}» aún no existe")
+        competiciones, metricas = {}, {}
+        for clave, (nombre, prefijo, corto) in COMPETICIONES.items():
+            partidos = []
+            for sufijo, etapa in PAGINAS:
+                pagina = f"{temporada} {nombre} {sufijo}"
+                texto = self.wikitexto(pagina)
+                if texto is None:
+                    self.info(f"La página «{pagina}» aún no existe")
+                    continue
+                nuevos = parsear(texto, etapa, corto)
+                self.info(f"«{pagina}»: {len(nuevos)} partidos leídos")
+                partidos += nuevos
+            if not partidos:
+                self.aviso(f"No se encontró ningún partido de la {nombre} {temporada} en Wikipedia")
                 continue
-            nuevos = parsear(texto, etapa)
-            self.info(f"«{pagina}»: {len(nuevos)} partidos leídos")
-            partidos += nuevos
-        if not partidos:
-            raise RuntimeError(f"No se encontró ningún partido de la temporada {temporada} en Wikipedia")
-        for n, p in enumerate(partidos):
-            p["id"] = f"cl-{n}"
+            for n, p in enumerate(partidos):
+                p["id"] = f"{prefijo}-{n}"
 
-        jugados = [p for p in partidos if p["goles_local"] is not None]
-        proximos = siguiente_jornada(partidos)
-        if proximos:
-            self.info(f"Próxima jornada: {len(proximos)} partidos desde el {proximos[0]['fecha'][:10]}")
-        else:
-            self.aviso("No hay partidos pendientes")
-        self.metricas = {"partidos_temporada": len(partidos), "jugados": len(jugados), "proximos": len(proximos)}
-        return {"temporada": temporada, "jugados": jugados, "proximos": proximos}
+            jugados = [p for p in partidos if p["goles_local"] is not None]
+            proximos = siguiente_jornada(partidos)
+            if proximos:
+                self.info(f"{corto}: próxima jornada de {len(proximos)} partidos desde el {proximos[0]['fecha'][:10]}")
+            else:
+                self.aviso(f"{corto}: no hay partidos pendientes")
+            competiciones[clave] = {"nombre": nombre, "corto": corto, "jugados": jugados, "proximos": proximos}
+            metricas[clave] = {"partidos_temporada": len(partidos), "jugados": len(jugados), "proximos": len(proximos)}
+        if not competiciones:
+            raise RuntimeError(f"No se encontró ningún partido de la temporada {temporada} en Wikipedia")
+        self.metricas = metricas
+        return {"temporada": temporada, "competiciones": competiciones}
 
 
 def temporada_actual(hoy):
@@ -60,7 +72,7 @@ def temporada_actual(hoy):
     return f"{anio}–{(anio + 1) % 100:02d}"
 
 
-def parsear(texto, etapa_por_defecto):
+def parsear(texto, etapa_por_defecto, competicion):
     texto = re.sub(r"<!--.*?-->", "", texto, flags=re.S)
     cabeceras = [(m.start(), len(m.group(1)), m.group(2)) for m in CABECERA.finditer(texto)]
     partidos = []
@@ -73,7 +85,7 @@ def parsear(texto, etapa_por_defecto):
                 break
             titulos = {n: t for n, t in titulos.items() if n < nivel}
             titulos[nivel] = titulo
-        partido = _partido(caja, [titulos[n] for n in sorted(titulos, reverse=True)], etapa_por_defecto)
+        partido = _partido(caja, [titulos[n] for n in sorted(titulos, reverse=True)], etapa_por_defecto, competicion)
         if partido:
             partidos.append(partido)
     return partidos
@@ -99,7 +111,7 @@ def _equipo(texto):
     }
 
 
-def _partido(caja, titulos, etapa_por_defecto):
+def _partido(caja, titulos, etapa_por_defecto, competicion):
     fecha = FECHA.search(_campo(caja, "date"))
     local, visitante = _equipo(_campo(caja, "team1")), _equipo(_campo(caja, "team2"))
     if not fecha or not local or not visitante:
@@ -124,7 +136,7 @@ def _partido(caja, titulos, etapa_por_defecto):
     return {
         "fecha": utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "estado": "FINISHED" if marcador else "TIMED",
-        "etapa": etapa, "jornada": jornada, "competicion": "Champions",
+        "etapa": etapa, "jornada": jornada, "competicion": competicion,
         "local": local, "visitante": visitante,
         "goles_local": int(marcador.group(1)) if marcador else None,
         "goles_visitante": int(marcador.group(2)) if marcador else None,

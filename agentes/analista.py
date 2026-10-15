@@ -1,7 +1,7 @@
 """Agente Analista: calcula las probabilidades de goles, corners y tarjetas.
 
-Para cada equipo junta sus partidos de liga (football-data.co.uk) y de Champions
-(Wikipedia). Los de liga se ajustan al nivel de cada liga, para que dominar la liga
+Para cada equipo junta sus partidos de liga (football-data.co.uk) y de la competición
+europea que juega (Champions o Europa League, de Wikipedia). Los de liga se ajustan al nivel de cada liga, para que dominar la liga
 eslovaca no cuente igual que dominar la Premier League.
 """
 from datetime import datetime, timezone
@@ -17,14 +17,14 @@ NIVEL_LIGA = {
     "BEL": 0.86, "TUR": 0.84, "GRE": 0.80, "AUT": 0.80, "CZE": 0.80, "SUI": 0.80, "SCO": 0.78,
     "DEN": 0.78, "UKR": 0.78, "NOR": 0.76, "CRO": 0.74, "SRB": 0.74, "POL": 0.74, "SWE": 0.72,
     "ISR": 0.70, "CYP": 0.70, "SVK": 0.68, "HUN": 0.68, "ROU": 0.68, "AZE": 0.66, "BUL": 0.64,
-    "SLO": 0.62, "KAZ": 0.62, "MDA": 0.60,
+    "SLO": 0.62, "KAZ": 0.62, "MDA": 0.60, "ARM": 0.58,
 }
 NIVEL_DESCONOCIDO = 0.72
 COMPRESION = 0.65         # suaviza lo mucho que domina un equipo en una liga débil
-PESO_CHAMPIONS = 1.5      # un partido de Champions cuenta 1.5 veces uno de liga
+PESO_COPA = 1.5           # un partido de Champions o Europa League cuenta 1.5 veces uno de liga
 PESO_PREVIO = 4           # partidos "virtuales" al nivel de su liga, para muestras pequeñas
 MAX_PARTIDOS_LIGA = 12
-MEDIA_CHAMPIONS_PREVIA = 1.45
+MEDIA_COPA_PREVIA = 1.45  # goles por equipo antes de que se jueguen partidos
 # Estadísticas por equipo y partido: valor medio si no hay datos, y líneas de "más de"
 ESTADISTICAS = {
     "corners": {"defecto": 5.0, "lineas": (8.5, 9.5, 10.5)},
@@ -45,15 +45,22 @@ class AgenteAnalista(Agente):
     nombre = "analista"
 
     def trabajar(self, calendario, ligas, mapa):
-        jugados, proximos = calendario["jugados"], calendario["proximos"]
+        resultado, self.metricas = {}, {}
+        for clave, competicion in calendario["competiciones"].items():
+            resultado[clave] = self._competicion(competicion, ligas, mapa)
+            self.metricas[clave] = resultado[clave].pop("metricas")
+        return resultado
+
+    def _competicion(self, competicion, ligas, mapa):
+        jugados, proximos, corto = competicion["jugados"], competicion["proximos"], competicion["corto"]
         goles = sum(p["goles_local"] + p["goles_visitante"] for p in jugados)
-        media_cl = (goles + MEDIA_CHAMPIONS_PREVIA * 36) / (2 * len(jugados) + 36)
-        self.info(f"Media de goles por equipo en esta Champions: {media_cl:.2f} ({len(jugados)} partidos jugados)")
+        media = (goles + MEDIA_COPA_PREVIA * 36) / (2 * len(jugados) + 36)
+        self.info(f"Media de goles por equipo en esta {corto}: {media:.2f} ({len(jugados)} partidos jugados)")
 
         partidos = []
         for p in sorted(proximos, key=lambda p: p["fecha"]):
-            fichas = {lado: self._ficha(p[lado], jugados, ligas, mapa, media_cl) for lado in ("local", "visitante")}
-            analisis = _analizar(p, fichas, media_cl)
+            fichas = {lado: self._ficha(p[lado], jugados, ligas, mapa, media, corto) for lado in ("local", "visitante")}
+            analisis = _analizar(p, fichas, media)
             partidos.append(analisis)
             pr, c, t = analisis["probabilidades"], analisis["mercados"]["corners"], analisis["mercados"]["tarjetas"]
             self.info(f"{p['local']['corto']} vs {p['visitante']['corto']}: "
@@ -61,19 +68,19 @@ class AgenteAnalista(Agente):
                       f"corners {c['total']:.1f} | tarjetas {t['total']:.1f}")
 
         confianza = [p["pronostico"]["confianza"] for p in partidos]
-        self.metricas = {
-            "partidos": len(partidos), "media_goles_champions": round(media_cl, 2),
-            **{f"confianza_{n}": confianza.count(n) for n in ("alta", "media", "baja")},
-        }
         return {
-            "competicion": "UEFA Champions League",
+            "competicion": competicion["nombre"],
             "jornada": nombre_jornada(proximos[0]) if proximos else "",
             "generado": datetime.now(timezone.utc).isoformat(),
-            "media_goles": media_cl,
+            "media_goles": media,
             "partidos": partidos,
+            "metricas": {
+                "partidos": len(partidos), "media_goles": round(media, 2),
+                **{f"confianza_{n}": confianza.count(n) for n in ("alta", "media", "baja")},
+            },
         }
 
-    def _ficha(self, equipo, jugados, ligas, mapa, media_cl):
+    def _ficha(self, equipo, jugados, ligas, mapa, media, corto):
         nivel = NIVEL_LIGA.get(equipo["pais"], NIVEL_DESCONOCIDO)
         registros = []
         for p in jugados:
@@ -82,7 +89,7 @@ class AgenteAnalista(Agente):
             es_local = p["local"]["id"] == equipo["id"]
             registros.append(_registro(
                 p["fecha"][:10], (p["visitante"] if es_local else p["local"])["corto"], es_local,
-                p["goles_local"], p["goles_visitante"], "Champions", "champions"))
+                p["goles_local"], p["goles_visitante"], corto, "copa"))
 
         destino = mapa.get(equipo["id"])
         liga = ligas.get(equipo["pais"]) if destino else None
@@ -95,7 +102,7 @@ class AgenteAnalista(Agente):
                     m["gl"], m["gv"], liga["nombre"], "liga", m))
 
         de_liga = [r for r in registros if r["tipo"] == "liga"]
-        de_champions = [r for r in registros if r["tipo"] == "champions"]
+        de_copa = [r for r in registros if r["tipo"] == "copa"]
         componentes = [(nivel, 1 / nivel, PESO_PREVIO)]
         if de_liga:
             a_favor = _media((0.5 * r["gf"] + 0.5 * r["xgf"]) if r["xgf"] is not None else r["gf"] for r in de_liga)
@@ -105,15 +112,15 @@ class AgenteAnalista(Agente):
                 (en_contra / liga["media_goles"]) ** COMPRESION / nivel,
                 len(de_liga),
             ))
-        if de_champions:
+        if de_copa:
             componentes.append((
-                _media(r["gf"] for r in de_champions) / media_cl,
-                _media(r["gc"] for r in de_champions) / media_cl,
-                PESO_CHAMPIONS * len(de_champions),
+                _media(r["gf"] for r in de_copa) / media,
+                _media(r["gc"] for r in de_copa) / media,
+                PESO_COPA * len(de_copa),
             ))
         peso_total = sum(w for _, _, w in componentes)
-        if len(de_liga) + len(de_champions) < 4:
-            self.aviso(f"{equipo['nombre']}: solo {len(de_liga) + len(de_champions)} partidos, pronóstico poco fiable")
+        if len(de_liga) + len(de_copa) < 4:
+            self.aviso(f"{equipo['nombre']}: solo {len(de_liga) + len(de_copa)} partidos, pronóstico poco fiable")
 
         def estadistica(nombre):
             con_dato = [r["stats"][nombre] for r in de_liga if r["stats"][nombre][0] is not None]
@@ -133,7 +140,7 @@ class AgenteAnalista(Agente):
             "nivel": nivel,
             "ataque": sum(a * w for a, _, w in componentes) / peso_total,
             "defensa": sum(d * w for _, d, w in componentes) / peso_total,
-            "datos": {"liga": len(de_liga), "champions": len(de_champions)},
+            "datos": {"liga": len(de_liga), "copa": len(de_copa), "competicion": corto},
             "partidos": len(registros),
             "media_gf": _media(r["gf"] for r in registros),
             "media_gc": _media(r["gc"] for r in registros),
@@ -174,11 +181,11 @@ def _mercado(local, visitante, nombre):
     }
 
 
-def _analizar(partido, fichas, media_cl):
+def _analizar(partido, fichas, media):
     local, visitante = fichas["local"], fichas["visitante"]
     ventaja = 1.0 if partido["etapa"] == "FINAL" else VENTAJA_LOCAL
-    lam_l = media_cl * local["ataque"] * visitante["defensa"] * ventaja
-    lam_v = media_cl * visitante["ataque"] * local["defensa"] / ventaja
+    lam_l = media * local["ataque"] * visitante["defensa"] * ventaja
+    lam_v = media * visitante["ataque"] * local["defensa"] / ventaja
 
     rango = range(MAX_GOLES + 1)
     matriz = {(i, j): _poisson(i, lam_l) * _poisson(j, lam_v) for i in rango for j in rango}

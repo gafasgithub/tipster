@@ -1,6 +1,6 @@
 # TIPSTER
 
-Pronósticos de la próxima jornada de la Champions League, publicados en una web pixel art:
+Pronósticos de la próxima jornada de la Champions League y la Europa League, y de tenis, publicados en una web pixel art:
 https://gafasgithub.github.io/tipster (repositorio: https://github.com/gafasgithub/tipster).
 
 ## Cómo funciona
@@ -9,6 +9,10 @@ https://gafasgithub.github.io/tipster (repositorio: https://github.com/gafasgith
   (`agentes/`): calendario (Wikipedia) → ligas (CSV de football-data.co.uk) → traductor (une
   nombres de equipos) → analista (modelo de Poisson ajustado por nivel de liga) → web.
   No usan IA ni claves de API. El usuario los llama "agentes".
+- Cada competición de fútbol se añade en `COMPETICIONES` (`agentes/calendario.py`): el calendario lee
+  todas, ligas y traductor trabajan con la unión de equipos y el analista analiza cada una con su propia
+  media de goles. En la web (`plantilla.html`) hay pestañas FÚTBOL | TENIS y, dentro de
+  fútbol, subpestañas CHAMPIONS | EUROPA LEAGUE; la Champions va en `DATOS` y la Europa League en `EUROPA`.
 - Tenis (pestaña aparte en la misma web): tenis-calendario (cuadros de Wikipedia) → tenis-resultados
   (cuadros de Wikipedia de esta temporada y la anterior) → tenis-traductor → tenis-analista (Elo + modelo
   juego a juego en `agentes/tenis_modelo.py`, calibrado cada día con el % real de tie-breaks y la media
@@ -29,7 +33,9 @@ https://gafasgithub.github.io/tipster (repositorio: https://github.com/gafasgith
 
 ## Limitaciones conocidas
 
-- Sin fuente de liga para Ucrania, Eslovaquia, Chequia, Azerbaiyán... (solo cuentan sus partidos de Champions).
+- Sin fuente de liga para Ucrania, Eslovaquia, Chequia, Azerbaiyán, Croacia, Hungría, Israel, Chipre... (solo
+  cuentan sus partidos europeos). Tampoco para equipos de segunda división (p. ej. Torreense): se les supone
+  el nivel de la primera de su país.
 - Corners, tarjetas, tiros y faltas solo existen en las ligas "principales" de football-data.co.uk.
 - Saques de banda: ninguna fuente libre los tiene; se decidió no inventarlos.
 - Tenis: tennis-data.co.uk se descartó porque bloquea (403) las descargas desde GitHub; no intentar

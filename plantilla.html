@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TIPSTER · Champions League</title>
+<title>TIPSTER · Fútbol y tenis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
@@ -220,6 +220,10 @@
   .pestana svg { width: 22px; height: 22px; flex: none; }
   .pestana[aria-pressed="true"] { background: var(--oro); color: #1b1838; }
   .pestana:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--sombra); }
+  .subpestanas { margin-top: -4px; padding-left: 14px; border-left: 4px solid var(--oro); }
+  .subpestanas .pestana { font-size: 10px; padding: 8px 12px; box-shadow: 4px 4px 0 var(--sombra); }
+  .subpestanas .pestana svg { width: 16px; height: 16px; }
+  .subpestanas .pestana[aria-pressed="true"] { background: var(--local); }
   .sup { font: 8px var(--px); color: #fff; padding: 4px 6px; border: 2px solid var(--tinta); white-space: nowrap; }
   .sup-Hard { background: #2f6fe4; } .sup-Clay { background: #d9622b; } .sup-Grass { background: #2fa84f; }
   .ranking { font: 9px var(--px); color: var(--local); margin-right: 4px; }
@@ -311,6 +315,19 @@
         <path fill="#fff" d="M4 3h1v2h1v6H5v2H4v-2H3V5h1z M11 3h1v2h1v6h-1v2h-1v-2h-1V5h1z"/>
       </svg>TENIS</button>
   </nav>
+  <nav class="pestanas subpestanas" id="competiciones" hidden>
+    <button class="pestana" data-v="champions" aria-pressed="true">
+      <svg class="pixel" viewBox="0 0 12 12" aria-hidden="true">
+        <path fill="#ffcc33" d="M2 1h8v1h2v3h-1v1h-1v1H9v1H8v1H7v1h2v1h1v1H2v-1h1v-1h2V9H4V8H3V7H2V6H1V5H0V2h2zM1 3v1h1V3zM10 3v1h1V3z"/>
+        <path fill="#c98a00" d="M7 2h2v5H8v1H7z M3 11h6v1H3z"/>
+      </svg>CHAMPIONS</button>
+    <button class="pestana" data-v="europa" aria-pressed="false">
+      <svg class="pixel" viewBox="0 0 16 16" aria-hidden="true">
+        <path fill="#1b1838" d="M5 1h6v1h2v1h1v2h1v6h-1v2h-1v1h-2v1H5v-1H3v-1H2v-2H1V5h1V3h1V2h2z"/>
+        <path fill="#ff8a00" d="M5 2h6v1h2v2h1v6h-1v2h-2v1H5v-1H3v-2H2V5h1V3h2z"/>
+        <path fill="#1b1838" d="M7 5h2v1h1v2H9v1H7V8H6V6h1z M3 6h1v2H3z M12 6h1v2h-1z M6 12h1v1H6z M9 12h1v1H9z M7 2h2v1H7z"/>
+      </svg>EUROPA LEAGUE</button>
+  </nav>
   <div id="aviso"></div>
   <div class="controles">
     <div class="grupo" id="orden">
@@ -344,6 +361,8 @@
 
 <script>
 const DATOS = /*__DATOS__*/null;
+const EUROPA = /*__EUROPA__*/null;
+const NOMBRE_PESTANA = { champions: "Champions League", europa: "Europa League", tenis: "Tenis" };
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pct = p => Math.round(p * 100) + "%";
@@ -427,7 +446,7 @@ const sinTildes = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
 function datosEquipo(eq) {
   if (!eq.datos) return `${dec(eq.media_gf)} goles a favor y ${dec(eq.media_gc)} en contra por partido (${eq.partidos} partidos)`;
   const liga = eq.liga ? `${eq.datos.liga} de ${esc(eq.liga)}` : "sin datos de su liga";
-  return `${liga} + ${eq.datos.champions} de Champions.` +
+  return `${liga} + ${eq.datos.copa ?? eq.datos.champions} de ${esc(eq.datos.competicion || "Champions")}.` +
     (eq.estadisticas && eq.estadisticas.corners.n
       ? ` Por partido: ${dec(eq.estadisticas.corners.a_favor, 1)} corners, ${dec(eq.estadisticas.tiros.a_favor, 1)} tiros` +
         ` (${dec(eq.estadisticas.apuerta.a_favor, 1)} a puerta), ${dec(eq.estadisticas.faltas.a_favor, 1)} faltas y ${dec(eq.estadisticas.tarjetas.a_favor, 1)} tarjetas.`
@@ -501,6 +520,9 @@ const SUPERFICIES = { Hard: "DURA", Clay: "TIERRA", Grass: "HIERBA" };
 const ICONO_SETS = pixel(`<path fill="currentColor" d="M0 1h8v6H0z"/><path fill="#ffcc33" d="M1 2h2v4H1z M5 2h2v4H5z"/>`);
 const ICONO_JUEGOS = pixel(`<path fill="#d4e157" d="M2 0h4v1h1v1h1v4H7v1H6v1H2V7H1V6H0V2h1V1h1z"/><path fill="#fff" d="M2 1h1v6H2z M5 1h1v6H5z"/>`);
 let deporte = location.hash === "#tenis" ? "tenis" : "futbol";
+let competicion = location.hash === "#europa" ? "europa" : "champions";
+const pestanaActual = () => deporte === "tenis" ? "tenis" : competicion;
+const datosPestana = () => ({ champions: DATOS, europa: EUROPA, tenis: TENIS })[pestanaActual()];
 
 function jugador(j) {
   const ranking = j.ranking ? `<span class="ranking">#${j.ranking}</span>` : "";
@@ -593,9 +615,9 @@ function tarjetaTenis(p) {
 function pintar() {
   const cont = document.getElementById("partidos");
   const tenis = deporte === "tenis";
-  const datos = tenis ? TENIS : DATOS;
+  const datos = datosPestana();
   if (!datos) {
-    cont.innerHTML = `<div class="vacio">DATOS DE ${tenis ? "TENIS" : "FUTBOL"}<br>NO DISPONIBLES HOY</div>`;
+    cont.innerHTML = `<div class="vacio">DATOS DE ${NOMBRE_PESTANA[pestanaActual()].toUpperCase()}<br>NO DISPONIBLES HOY</div>`;
     return;
   }
   const dibujar = tenis ? tarjetaTenis : tarjeta;
@@ -625,25 +647,29 @@ function botones(id, alCambiar) {
     if (!b) return;
     grupo.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
     alCambiar(b.dataset.v);
-    if (id === "pestanas") cabecera();
+    if (id === "pestanas" || id === "competiciones") cabecera();
     pintar();
   });
 }
 
 function cabecera() {
   const tenis = deporte === "tenis";
-  const datos = tenis ? TENIS : DATOS;
+  const datos = datosPestana();
   for (const [id, visible] of [["escena-futbol", !tenis], ["escena-tenis", tenis], ["explica-futbol", !tenis], ["explica-tenis", tenis]]) {
     document.getElementById(id).hidden = !visible;
   }
   document.querySelectorAll("#pestanas button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === deporte));
+  document.querySelectorAll("#competiciones button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === competicion));
+  // Sin Europa League (p. ej. en la versión original) no hace falta elegir competición
+  document.getElementById("competiciones").hidden = tenis || !EUROPA;
+  history.replaceState(null, "", "#" + (tenis ? "tenis" : competicion === "europa" ? "europa" : "futbol"));
   document.querySelector('#orden [data-v="hora"]').textContent = tenis ? "TORNEO" : "HORARIO";
-  document.getElementById("aviso").innerHTML = !tenis && DATOS && DATOS.demo
+  document.getElementById("aviso").innerHTML = pestanaActual() === "champions" && DATOS && DATOS.demo
     ? `<div class="aviso-demo"><b>! DEMO</b>Los equipos son reales, pero los resultados y las estadísticas son inventados. Sirve solo para ver cómo luce la web.</div>` : "";
 
   const titulo = document.getElementById("titulo"), sub = document.getElementById("subtitulo"), cifras = document.getElementById("datos-hero");
   if (!datos) {
-    titulo.textContent = tenis ? "Tenis" : "Champions League";
+    titulo.textContent = NOMBRE_PESTANA[pestanaActual()];
     sub.textContent = "Sin datos disponibles hoy";
     cifras.innerHTML = document.getElementById("fuentes").innerHTML = document.getElementById("generado").textContent = "";
     return;
@@ -658,7 +684,7 @@ function cabecera() {
       <div class="dato"><b>${datos.torneos.length}</b><span>torneos</span></div>
       <div class="dato"><b>${altas}</b><span>confianza alta</span></div>`;
   } else {
-    titulo.textContent = datos.jornada || "Champions League";
+    titulo.textContent = datos.jornada || NOMBRE_PESTANA[pestanaActual()];
     const fechas = ps.map(p => new Date(p.fecha));
     const rango = fechas.length
       ? [fechas[0], fechas[fechas.length - 1]].map(f => fmtCorta.format(f)).filter((v, i, a) => a.indexOf(v) === i).join(" – ")
@@ -675,14 +701,15 @@ function cabecera() {
 }
 
 function iniciar() {
-  if (!DATOS && !TENIS) {
+  if (!DATOS && !EUROPA && !TENIS) {
     document.getElementById("partidos").innerHTML = `<div class="vacio">ESTA ES LA PLANTILLA<br>Ejecuta <code>py tipster_agentes.py</code></div>`;
     return;
   }
-  // La versión original (solo fútbol) no trae tenis: entonces no se muestran las pestañas
+  // La versión original (solo Champions) no trae tenis: entonces no se muestran las pestañas de deporte
   if (TENIS) document.getElementById("pestanas").hidden = false;
   else deporte = "futbol";
-  botones("pestanas", v => { deporte = v; history.replaceState(null, "", "#" + v); });
+  botones("pestanas", v => deporte = v);
+  botones("competiciones", v => competicion = v);
   botones("orden", v => orden = v);
   botones("filtro", v => filtro = v);
   cabecera();

@@ -16,7 +16,7 @@ ALIAS = {
     "Union Saint-Gilloise": "St. Gilloise", "Nottingham Forest": "Nott'm Forest",
     "Red Bull Salzburg": "Salzburg", "Rapid Wien": "SK Rapid", "Austria Wien": "Austria Vienna",
     "Olympique de Marseille": "Marseille", "Olympique Lyonnais": "Lyon",
-    "İstanbul Başakşehir": "Buyuksehyr", "Göztepe": "Goztep",
+    "İstanbul Başakşehir": "Buyuksehyr", "Göztepe": "Goztep", "NEC": "Nijmegen",
 }
 PALABRAS_VACIAS = {
     "fc", "cf", "sk", "sc", "ac", "as", "afc", "club", "de", "fk", "kv", "ss", "calcio",
@@ -68,7 +68,8 @@ class AgenteTraductor(Agente):
         for norm, original in normalizados.items():
             if palabras and (palabras <= set(norm.split()) or set(norm.split()) <= palabras):
                 return original, "parecido"
-        parecidos = difflib.get_close_matches(clave, list(normalizados), n=1, cutoff=0.6)
+        # Umbral alto: con 0.6, Torreense (segunda portuguesa) se confundía con Moreirense
+        parecidos = difflib.get_close_matches(clave, list(normalizados), n=1, cutoff=0.8)
         if parecidos:
             return normalizados[parecidos[0]], "aproximado"
         return None, None

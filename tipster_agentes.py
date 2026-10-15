@@ -1,7 +1,7 @@
-"""TIPSTER con agentes: pronósticos de fútbol (Champions) y tenis (ATP/WTA) sin clave de API.
+"""TIPSTER con agentes: pronósticos de fútbol (Champions y Europa League) y tenis (ATP/WTA) sin clave de API.
 
 Fútbol:
-  1. calendario         lee en Wikipedia la próxima jornada y los resultados de la Champions
+  1. calendario         lee en Wikipedia la próxima jornada y los resultados de la Champions y la Europa League
   2. ligas              descarga de football-data.co.uk los partidos de liga de cada país
   3. traductor          une los nombres de los equipos entre ambas fuentes
   4. analista           calcula las probabilidades de goles, corners, tarjetas, tiros y faltas
@@ -43,9 +43,10 @@ AGENTES = ["calendario", "ligas", "traductor", "analista",
 def futbol(monitor):
     calendario = AgenteCalendario(monitor).ejecutar()
     equipos = {}
-    for p in calendario["proximos"]:
-        for lado in ("local", "visitante"):
-            equipos[p[lado]["id"]] = p[lado]
+    for competicion in calendario["competiciones"].values():
+        for p in competicion["proximos"]:
+            for lado in ("local", "visitante"):
+                equipos[p[lado]["id"]] = p[lado]
     ligas = AgenteLigas(monitor).ejecutar({e["pais"] for e in equipos.values()})
     mapa = AgenteTraductor(monitor).ejecutar(equipos, ligas)
     return AgenteAnalista(monitor).ejecutar(calendario, ligas, mapa)
@@ -76,7 +77,7 @@ def main():
         monitor.terminar(ok=False)
         sys.exit("\nLos dos deportes fallaron. Detalles en estado/eventos.jsonl")
     try:
-        ruta = AgenteWeb(monitor).ejecutar(resultados["fútbol"], resultados["tenis"])
+        ruta = AgenteWeb(monitor).ejecutar(resultados["fútbol"] or {}, resultados["tenis"])
     except Exception:
         monitor.terminar(ok=False)
         sys.exit("\nNo se pudo generar la web. Detalles en estado/eventos.jsonl")

@@ -1,6 +1,6 @@
 # TIPSTER
 
-Pronósticos de la próxima jornada de la UEFA Champions League y de los torneos de tenis ATP/WTA
+Pronósticos de la próxima jornada de la UEFA Champions League y la UEFA Europa League, y de los torneos de tenis ATP/WTA
 en juego, con una web estilo pixel art.
 
 Para cada partido estima, con un modelo de Poisson basado en los últimos partidos de cada equipo:
@@ -23,7 +23,7 @@ py tipster.py --abrir           # versión original con la API de football-data.
 
 | Agente | Qué hace |
 |---|---|
-| `calendario` | Lee en Wikipedia la próxima jornada y los resultados de la Champions |
+| `calendario` | Lee en Wikipedia la próxima jornada y los resultados de la Champions y la Europa League |
 | `ligas` | Descarga de football-data.co.uk los partidos de liga de cada país (goles, xG, corners, tarjetas) |
 | `traductor` | Une los nombres de los equipos entre ambas fuentes |
 | `analista` | Calcula las probabilidades, ajustando por el nivel de cada liga |
@@ -31,7 +31,7 @@ py tipster.py --abrir           # versión original con la API de football-data.
 | `tenis-resultados` | Lee en Wikipedia los cuadros de todos los torneos ATP y WTA de esta temporada y la anterior |
 | `tenis-traductor` | Une los nombres de los jugadores entre ambas fuentes |
 | `tenis-analista` | Elo por jugador (general y por superficie) y simulación juego a juego: sets, juegos y tie-breaks |
-| `web` | Genera `web_agentes/index.html` con las pestañas de fútbol y tenis |
+| `web` | Genera `web_agentes/index.html` con las pestañas de Champions, Europa League y tenis |
 
 Lo que hace cada agente queda en `estado/ejecucion.json` y `estado/eventos.jsonl`.
 
